@@ -9,7 +9,7 @@ import (
 
 func TestEncode(t *testing.T) {
 	tests := []struct {
-		in Datum
+		in  Datum
 		out string
 	}{
 		{42, "i42e"},

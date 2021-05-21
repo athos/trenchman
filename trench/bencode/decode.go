@@ -62,7 +62,7 @@ func (d *Decoder) decodeNumber(delim byte) (n int, err error) {
 		}
 		switch {
 		case '0' <= b && b <= '9':
-			n = n * 10 + int(b - '0')
+			n = n*10 + int(b-'0')
 		default:
 			if err := d.ensureByte(b, delim); err != nil {
 				return 0, err
