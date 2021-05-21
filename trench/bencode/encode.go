@@ -48,9 +48,7 @@ func (e *Encoder) Encode(datum Datum) error {
 		for k := range datum {
 			keys = append(keys, k)
 		}
-		sort.SliceStable(keys, func(i, j int) bool {
-			return keys[i] < keys[j]
-		})
+		sort.Strings(keys)
 		for _, k := range keys {
 			v := datum[k]
 			if err := e.Encode(k); err != nil {
