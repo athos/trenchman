@@ -24,7 +24,7 @@ func (e *Encoder) writeString(s string) (err error) {
 	return
 }
 
-func (e *Encoder) Encode(datum Datum) error {
+func (e *Encoder) encode1(datum Datum) error {
 	switch datum := datum.(type) {
 	case int:
 		e.writeByte('i')
@@ -37,7 +37,7 @@ func (e *Encoder) Encode(datum Datum) error {
 	case []Datum:
 		e.writeByte('l')
 		for _, d := range datum {
-			if err := e.Encode(d); err != nil {
+			if err := e.encode1(d); err != nil {
 				return err
 			}
 		}
@@ -51,10 +51,10 @@ func (e *Encoder) Encode(datum Datum) error {
 		sort.Strings(keys)
 		for _, k := range keys {
 			v := datum[k]
-			if err := e.Encode(k); err != nil {
+			if err := e.encode1(k); err != nil {
 				return err
 			}
-			if err := e.Encode(v); err != nil {
+			if err := e.encode1(v); err != nil {
 				return err
 			}
 		}
@@ -63,11 +63,14 @@ func (e *Encoder) Encode(datum Datum) error {
 	return nil
 }
 
-func Encode(writer io.Writer, datum Datum) (err error) {
-	e := NewEncoder(writer)
-	err = e.Encode(datum)
-	if err != nil {
-		return
+func (e *Encoder) Encode(datum Datum) error {
+	if err := e.encode1(datum); err != nil {
+		return err
 	}
 	return e.writer.Flush()
+}
+
+func Encode(writer io.Writer, datum Datum) (err error) {
+	e := NewEncoder(writer)
+	return e.Encode(datum)
 }
