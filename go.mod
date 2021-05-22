@@ -1,4 +1,4 @@
-module github.com/athos/trench
+module github.com/athos/trenchman
 
 go 1.16
 
