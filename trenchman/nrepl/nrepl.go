@@ -1,6 +1,7 @@
 package nrepl
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -85,14 +86,27 @@ func (conn *Conn) initSession() (session string, err error) {
 	return
 }
 
-func (conn *Conn) startLoop() {
+func (conn *Conn) startLoop(ctx context.Context) {
+	handler := conn.handler
+	if handler == nil {
+		handler = func(_ Response) {}
+	}
+	errHandler := conn.errHandler
+	if errHandler == nil {
+		errHandler = func(_ error) {}
+	}
 	for {
-		resp, err := conn.recvResp()
-		if err != nil && conn.errHandler != nil {
-			conn.errHandler(err)
-			break
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			resp, err := conn.recvResp()
+			if err != nil {
+				errHandler(err)
+				return
+			}
+			handler(resp)
 		}
-		conn.handler(resp)
 	}
 }
 
