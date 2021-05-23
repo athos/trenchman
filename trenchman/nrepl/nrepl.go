@@ -52,21 +52,19 @@ func (b *ConnBuilder) Connect() (conn *Conn, err error) {
 }
 
 func (conn *Conn) sendReq(req Request) error {
-	return bencode.Encode(conn.socket, req)
-	//return conn.encoder.Encode(req)
+	return conn.encoder.Encode(map[string]bencode.Datum(req))
 }
 
 func (conn *Conn) recvResp() (resp Response, err error) {
-	datum, err := bencode.Decode(conn.socket)
-	// datum, err := conn.decoder.Decode()
+	datum, err := conn.decoder.Decode()
 	if err != nil {
 		return
 	}
-	resp, ok := datum.(Response)
+	dict, ok := datum.(map[string]bencode.Datum)
 	if !ok {
 		return nil, errors.New("response must be a dictionary")
 	}
-	return
+	return Response(dict), nil
 }
 
 func (conn *Conn) initSession() error {
