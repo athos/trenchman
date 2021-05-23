@@ -19,12 +19,12 @@ type (
 		errHandler ErrHandler
 	}
 
-	Listener    func(Response)
+	Handler     func(Response)
 	ErrHandler  func(error)
 	ConnBuilder struct {
 		Host       string
 		Port       int
-		Listener   Listener
+		Handler    Handler
 		ErrHandler ErrHandler
 	}
 )
@@ -47,7 +47,7 @@ func (b *ConnBuilder) Connect() (conn *Conn, err error) {
 	if err = conn.initSession(); err != nil {
 		return
 	}
-	go conn.startLoop(b.Listener)
+	go conn.startLoop(b.Handler)
 	return
 }
 
@@ -87,7 +87,7 @@ func (conn *Conn) initSession() error {
 	return nil
 }
 
-func (conn *Conn) startLoop(listener Listener) {
+func (conn *Conn) startLoop(listener Handler) {
 	for {
 		resp, err := conn.recvResp()
 		if err != nil && conn.errHandler != nil {
