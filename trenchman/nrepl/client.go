@@ -12,6 +12,7 @@ type IOHandler interface {
 
 type Client struct {
 	conn      *Conn
+	session   string
 	ch        chan string
 	ioHandler IOHandler
 }
@@ -31,7 +32,13 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	session, err := conn.initSession()
+	if err != nil {
+		return nil, err
+	}
 	client.conn = conn
+	client.session = session
+	go conn.startLoop()
 	return client, nil
 }
 
@@ -50,10 +57,11 @@ func (c *Client) handleResp(resp Response) {
 
 func (c *Client) Eval(code string) string {
 	req := Request{
-		"op":   "eval",
-		"code": code,
+		"op":      "eval",
+		"code":    code,
+		"session": c.session,
 	}
-	err := c.conn.Send(req)
+	err := c.conn.sendReq(req)
 	if err != nil {
 		c.ioHandler.Err(err.Error(), true)
 	}

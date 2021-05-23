@@ -11,16 +11,18 @@ import (
 type (
 	Request  map[string]bencode.Datum
 	Response map[string]bencode.Datum
-	Conn     struct {
+
+	Handler    func(Response)
+	ErrHandler func(error)
+
+	Conn struct {
 		socket     net.Conn
 		encoder    *bencode.Encoder
 		decoder    *bencode.Decoder
-		session    string
+		handler    Handler
 		errHandler ErrHandler
 	}
 
-	Handler     func(Response)
-	ErrHandler  func(error)
 	ConnBuilder struct {
 		Host       string
 		Port       int
@@ -38,17 +40,13 @@ func (b *ConnBuilder) Connect() (conn *Conn, err error) {
 	if err != nil {
 		return
 	}
-	conn = &Conn{
+	return &Conn{
 		socket:     socket,
 		encoder:    bencode.NewEncoder(socket),
 		decoder:    bencode.NewDecoder(socket),
+		handler:    b.Handler,
 		errHandler: b.ErrHandler,
-	}
-	if err = conn.initSession(); err != nil {
-		return
-	}
-	go conn.startLoop(b.Handler)
-	return
+	}, nil
 }
 
 func (conn *Conn) sendReq(req Request) error {
@@ -67,42 +65,37 @@ func (conn *Conn) recvResp() (resp Response, err error) {
 	return Response(dict), nil
 }
 
-func (conn *Conn) initSession() error {
+func (conn *Conn) initSession() (session string, err error) {
 	req := Request{
 		"op": "clone",
 		"id": "init",
 	}
-	if err := conn.sendReq(req); err != nil {
-		return err
+	if err = conn.sendReq(req); err != nil {
+		return
 	}
 	resp, err := conn.recvResp()
 	if err != nil {
-		return err
+		return
 	}
 	session, ok := resp["new-session"].(string)
 	if !ok {
-		return fmt.Errorf("illegal session id: %v", resp["new-session"])
+		err = fmt.Errorf("illegal session id: %v", resp["new-session"])
+		return
 	}
-	conn.session = session
-	return nil
+	return
 }
 
-func (conn *Conn) startLoop(listener Handler) {
+func (conn *Conn) startLoop() {
 	for {
 		resp, err := conn.recvResp()
 		if err != nil && conn.errHandler != nil {
 			conn.errHandler(err)
 			break
 		}
-		listener(resp)
+		conn.handler(resp)
 	}
 }
 
 func (conn *Conn) Close() error {
 	return conn.socket.Close()
-}
-
-func (conn *Conn) Send(req Request) error {
-	req["session"] = conn.session
-	return conn.sendReq(req)
 }
