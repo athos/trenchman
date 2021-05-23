@@ -1,6 +1,14 @@
-# trenchman
+# Trenchman
 
-FIXME
+Trenchman is a standalone nREPL client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman).
+
+## Installation
+
+(TODO)
+
+## Usage
+
+(TODO)
 
 ## License
 
