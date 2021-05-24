@@ -96,17 +96,19 @@ func (conn *Conn) startLoop(ctx context.Context) {
 		errHandler = func(_ error) {}
 	}
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			resp, err := conn.recvResp()
-			if err != nil {
-				errHandler(err)
+		resp, err := conn.recvResp()
+		if err != nil {
+			select {
+			case <-ctx.Done():
 				return
+			default:
+				if err != nil {
+					errHandler(err)
+					return
+				}
 			}
-			handler(resp)
 		}
+		handler(resp)
 	}
 }
 
