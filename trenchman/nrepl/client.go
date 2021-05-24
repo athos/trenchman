@@ -2,6 +2,8 @@ package nrepl
 
 import (
 	"fmt"
+
+	"github.com/athos/trenchman/trenchman/bencode"
 )
 
 type (
@@ -70,7 +72,22 @@ func has(resp Response, key string) bool {
 	return ok
 }
 
+func (c *Client) statusContains(datum bencode.Datum, status string) bool {
+	statuses, ok := datum.([]bencode.Datum)
+	if !ok {
+		msg := fmt.Sprintf("Unknown status returned: %v", statuses)
+		c.ioHandler.Err(msg, true)
+	}
+	for _, s := range statuses {
+		if s == status {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) handleResp(resp Response) {
+	//fmt.Printf("RESP: %v\n", resp)
 	switch {
 	case has(resp, "value"):
 		c.ch <- resp["value"].(string)
@@ -80,7 +97,13 @@ func (c *Client) handleResp(resp Response) {
 		c.ioHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
 		c.ioHandler.Err(resp["err"].(string), false)
-	case !has(resp, "status"):
+	case has(resp, "status"):
+		if c.statusContains(resp["status"], "need-input") {
+			session := resp["session"].(string)
+			in := c.ioHandler.In()
+			c.stdin(session, in)
+		}
+	default:
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
 		c.ioHandler.Err(msg, true)
 	}
@@ -97,4 +120,13 @@ func (c *Client) Eval(code string) EvalResult {
 		c.ioHandler.Err(err.Error(), true)
 	}
 	return <-c.ch
+}
+
+func (c *Client) stdin(session string, in string) {
+	req := Request{
+		"op":      "stdin",
+		"stdin":   in,
+		"session": session,
+	}
+	c.conn.sendReq(req)
 }
