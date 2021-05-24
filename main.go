@@ -34,14 +34,14 @@ type IOHandlerImpl struct {
 }
 
 func (impl *IOHandlerImpl) Out(s string) {
-	fmt.Println(s)
+	fmt.Print(s)
 }
 
 func (impl *IOHandlerImpl) Err(s string, fatal bool) {
 	if fatal {
 		panic(s)
 	} else {
-		fmt.Fprintln(os.Stderr, s)
+		fmt.Fprint(os.Stderr, s)
 	}
 }
 
