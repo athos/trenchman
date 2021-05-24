@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/athos/trenchman/trenchman/nrepl"
 )
@@ -19,6 +20,10 @@ func startRepl(in *bufio.Reader, client *nrepl.Client) {
 				return
 			}
 			panic(err)
+		}
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
 		}
 		result := client.Eval(code)
 		if res, ok := result.(string); ok {
