@@ -1,7 +1,6 @@
 package nrepl
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -86,7 +85,7 @@ func (conn *Conn) initSession() (session string, err error) {
 	return
 }
 
-func (conn *Conn) startLoop(ctx context.Context) {
+func (conn *Conn) startLoop(done chan struct{}) {
 	handler := conn.handler
 	if handler == nil {
 		handler = func(_ Response) {}
@@ -99,7 +98,7 @@ func (conn *Conn) startLoop(ctx context.Context) {
 		resp, err := conn.recvResp()
 		if err != nil {
 			select {
-			case <-ctx.Done():
+			case <-done:
 				return
 			default:
 				if err != nil {

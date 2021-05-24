@@ -1,7 +1,6 @@
 package nrepl
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -12,11 +11,11 @@ type IOHandler interface {
 }
 
 type Client struct {
-	conn       *Conn
-	session    string
-	ch         chan string
-	ioHandler  IOHandler
-	cancelLoop context.CancelFunc
+	conn      *Conn
+	session   string
+	ch        chan string
+	ioHandler IOHandler
+	done      chan struct{}
 }
 
 func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
@@ -24,6 +23,7 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	client := &Client{
 		ch:        ch,
 		ioHandler: ioHandler,
+		done:      make(chan struct{}),
 	}
 	builder := NewBuilder(host, port)
 	builder.Handler = func(r Response) { client.handleResp(r) }
@@ -40,14 +40,12 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	}
 	client.conn = conn
 	client.session = session
-	ctx, cancel := context.WithCancel(context.Background())
-	go conn.startLoop(ctx)
-	client.cancelLoop = cancel
+	go conn.startLoop(client.done)
 	return client, nil
 }
 
 func (c *Client) Close() error {
-	c.cancelLoop()
+	close(c.done)
 	if err := c.conn.Close(); err != nil {
 		return err
 	}
