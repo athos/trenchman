@@ -4,24 +4,36 @@ import (
 	"fmt"
 )
 
-type IOHandler interface {
-	In() string
-	Out(s string)
-	Err(s string, fatal bool)
-}
+type (
+	IOHandler interface {
+		In() string
+		Out(s string)
+		Err(s string, fatal bool)
+	}
 
-type Client struct {
-	conn      *Conn
-	session   string
-	ch        chan string
-	ioHandler IOHandler
-	done      chan struct{}
+	Client struct {
+		conn      *Conn
+		session   string
+		ch        chan EvalResult
+		ioHandler IOHandler
+		done      chan struct{}
+	}
+
+	// EvalResult is either string or RuntimeError
+	EvalResult interface{}
+
+	RuntimeError struct {
+		err string
+	}
+)
+
+func (e *RuntimeError) Error() string {
+	return e.err
 }
 
 func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
-	ch := make(chan string)
 	client := &Client{
-		ch:        ch,
+		ch:        make(chan EvalResult),
 		ioHandler: ioHandler,
 		done:      make(chan struct{}),
 	}
@@ -53,16 +65,28 @@ func (c *Client) Close() error {
 	return nil
 }
 
+func has(resp Response, key string) bool {
+	_, ok := resp[key]
+	return ok
+}
+
 func (c *Client) handleResp(resp Response) {
-	if val, ok := resp["value"]; ok {
-		c.ch <- val.(string)
-	} else if status, ok := resp["status"]; !ok || status == nil {
+	switch {
+	case has(resp, "value"):
+		c.ch <- resp["value"].(string)
+	case has(resp, "ex"):
+		c.ch <- &RuntimeError{resp["ex"].(string)}
+	case has(resp, "out"):
+		c.ioHandler.Out(resp["out"].(string))
+	case has(resp, "err"):
+		c.ioHandler.Err(resp["err"].(string), false)
+	case !has(resp, "status"):
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
 		c.ioHandler.Err(msg, true)
 	}
 }
 
-func (c *Client) Eval(code string) string {
+func (c *Client) Eval(code string) EvalResult {
 	req := Request{
 		"op":      "eval",
 		"code":    code,

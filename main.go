@@ -20,8 +20,12 @@ func startRepl(in *bufio.Reader, client *nrepl.Client) {
 			}
 			panic(err)
 		}
-		res := client.Eval(code)
-		fmt.Println(res)
+		result := client.Eval(code)
+		if res, ok := result.(string); ok {
+			fmt.Println(res)
+		} else if _, ok := result.(*nrepl.RuntimeError); !ok {
+			panic("unexpected result received")
+		}
 	}
 }
 
