@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/athos/trenchman/trenchman/nrepl"
@@ -32,6 +33,18 @@ func startRepl(in *bufio.Reader, client *nrepl.Client) {
 			panic("unexpected result received")
 		}
 	}
+}
+
+func startWatchInterruption(client *nrepl.Client) {
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Interrupt)
+	go func() {
+		for {
+			<-interrupt
+			fmt.Println("Interrupted!!")
+			client.Interrupt()
+		}
+	}()
 }
 
 type IOHandlerImpl struct {
@@ -65,5 +78,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	startWatchInterruption(client)
 	startRepl(stdin, client)
 }

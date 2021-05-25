@@ -138,3 +138,7 @@ func (c *Client) stdin(in string) {
 		"stdin": in,
 	})
 }
+
+func (c *Client) Interrupt() {
+	c.send(Request{"op": "interrupt"})
+}
