@@ -15,11 +15,13 @@ type (
 
 	Client struct {
 		conn      *Conn
-		session   string
+		session   Session
 		ch        chan EvalResult
 		ioHandler IOHandler
 		done      chan struct{}
 	}
+
+	Session string
 
 	// EvalResult is either string or RuntimeError
 	EvalResult interface{}
@@ -53,7 +55,7 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 		return nil, err
 	}
 	client.conn = conn
-	client.session = session
+	client.session = Session(session)
 	go conn.startLoop(client.done)
 	return client, nil
 }
@@ -99,9 +101,7 @@ func (c *Client) handleResp(resp Response) {
 		c.ioHandler.Err(resp["err"].(string), false)
 	case has(resp, "status"):
 		if c.statusContains(resp["status"], "need-input") {
-			session := resp["session"].(string)
-			in := c.ioHandler.In()
-			c.stdin(session, in)
+			c.stdin(c.ioHandler.In())
 		}
 	default:
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
@@ -113,7 +113,7 @@ func (c *Client) Eval(code string) EvalResult {
 	req := Request{
 		"op":      "eval",
 		"code":    code,
-		"session": c.session,
+		"session": string(c.session),
 	}
 	err := c.conn.sendReq(req)
 	if err != nil {
@@ -122,11 +122,11 @@ func (c *Client) Eval(code string) EvalResult {
 	return <-c.ch
 }
 
-func (c *Client) stdin(session string, in string) {
+func (c *Client) stdin(in string) {
 	req := Request{
 		"op":      "stdin",
 		"stdin":   in,
-		"session": session,
+		"session": string(c.session),
 	}
 	c.conn.sendReq(req)
 }
