@@ -109,24 +109,24 @@ func (c *Client) handleResp(resp Response) {
 	}
 }
 
-func (c *Client) Eval(code string) EvalResult {
-	req := Request{
-		"op":      "eval",
-		"code":    code,
-		"session": string(c.session),
-	}
-	err := c.conn.sendReq(req)
-	if err != nil {
+func (c *Client) send(req Request) {
+	req["session"] = string(c.session)
+	if err := c.conn.sendReq(req); err != nil {
 		c.ioHandler.Err(err.Error(), true)
 	}
+}
+
+func (c *Client) Eval(code string) EvalResult {
+	c.send(Request{
+		"op":   "eval",
+		"code": code,
+	})
 	return <-c.ch
 }
 
 func (c *Client) stdin(in string) {
-	req := Request{
-		"op":      "stdin",
-		"stdin":   in,
-		"session": string(c.session),
-	}
-	c.conn.sendReq(req)
+	c.send(Request{
+		"op":    "stdin",
+		"stdin": in,
+	})
 }
