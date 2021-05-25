@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/athos/trenchman/trenchman/nrepl"
+	"github.com/fatih/color"
 )
 
 func startRepl(in *bufio.Reader, client *nrepl.Client) {
@@ -28,7 +29,9 @@ func startRepl(in *bufio.Reader, client *nrepl.Client) {
 		}
 		result := client.Eval(code)
 		if res, ok := result.(string); ok {
+			color.Set(color.FgGreen)
 			fmt.Println(res)
+			color.Unset()
 		} else if _, ok := result.(*nrepl.RuntimeError); !ok {
 			panic("unexpected result received")
 		}
@@ -52,14 +55,18 @@ type IOHandlerImpl struct {
 }
 
 func (impl *IOHandlerImpl) Out(s string) {
+	color.Set(color.FgYellow)
 	fmt.Print(s)
+	color.Unset()
 }
 
 func (impl *IOHandlerImpl) Err(s string, fatal bool) {
 	if fatal {
 		panic(s)
 	} else {
+		color.Set(color.FgRed)
 		fmt.Fprint(os.Stderr, s)
+		color.Unset()
 	}
 }
 
