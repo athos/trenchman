@@ -12,7 +12,7 @@ import (
 
 func startRepl(in *bufio.Reader, client *nrepl.Client) {
 	for {
-		fmt.Print("> ")
+		fmt.Printf("%s=> ", client.CurrentNS())
 		code, err := in.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {

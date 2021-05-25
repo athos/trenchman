@@ -2,6 +2,7 @@ package nrepl
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/athos/trenchman/trenchman/bencode"
 )
@@ -16,6 +17,7 @@ type (
 	Client struct {
 		conn      *Conn
 		session   Session
+		ns        atomic.Value
 		ch        chan EvalResult
 		ioHandler IOHandler
 		done      chan struct{}
@@ -56,6 +58,7 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	}
 	client.conn = conn
 	client.session = Session(session)
+	client.ns.Store("user")
 	go conn.startLoop(client.done)
 	return client, nil
 }
@@ -67,6 +70,10 @@ func (c *Client) Close() error {
 	}
 	close(c.ch)
 	return nil
+}
+
+func (c *Client) CurrentNS() string {
+	return c.ns.Load().(string)
 }
 
 func has(resp Response, key string) bool {
@@ -92,6 +99,7 @@ func (c *Client) handleResp(resp Response) {
 	//fmt.Printf("RESP: %v\n", resp)
 	switch {
 	case has(resp, "value"):
+		c.ns.Store(resp["ns"].(string))
 		c.ch <- resp["value"].(string)
 	case has(resp, "ex"):
 		c.ch <- &RuntimeError{resp["ex"].(string)}
