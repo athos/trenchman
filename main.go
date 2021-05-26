@@ -44,7 +44,6 @@ func startWatchInterruption(client *nrepl.Client) {
 	go func() {
 		for {
 			<-interrupt
-			fmt.Println("Interrupted!!")
 			client.Interrupt()
 		}
 	}()

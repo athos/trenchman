@@ -154,5 +154,10 @@ func (c *Client) stdin(in string) {
 }
 
 func (c *Client) Interrupt() {
-	c.send(Request{"op": "interrupt"})
+	if c.pending != nil {
+		c.send(Request{
+			"op": "interrupt",
+			"interrupt-id": c.pending.id,
+		})
+	}
 }
