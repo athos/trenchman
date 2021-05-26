@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/athos/trenchman/trenchman/bencode"
+	"github.com/google/uuid"
 )
 
 type (
@@ -21,9 +22,13 @@ type (
 		ch        chan EvalResult
 		ioHandler IOHandler
 		done      chan struct{}
+		pending   *pending
 	}
 
 	Session string
+	pending struct {
+		id string
+	}
 
 	// EvalResult is either string or RuntimeError
 	EvalResult interface{}
@@ -108,8 +113,13 @@ func (c *Client) handleResp(resp Response) {
 	case has(resp, "err"):
 		c.ioHandler.Err(resp["err"].(string), false)
 	case has(resp, "status"):
-		if c.statusContains(resp["status"], "need-input") {
+		status := resp["status"]
+		if c.statusContains(status, "need-input") {
 			c.stdin(c.ioHandler.In())
+		} else if c.statusContains(status, "done") {
+			if has(resp, "id") && c.pending.id == resp["id"].(string) {
+				c.pending = nil
+			}
 		}
 	default:
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
@@ -125,8 +135,11 @@ func (c *Client) send(req Request) {
 }
 
 func (c *Client) Eval(code string) EvalResult {
+	id := uuid.NewString()
+	c.pending = &pending{id}
 	c.send(Request{
 		"op":   "eval",
+		"id":   id,
 		"code": code,
 		"ns":   c.CurrentNS(),
 	})
