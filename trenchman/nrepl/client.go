@@ -128,6 +128,7 @@ func (c *Client) Eval(code string) EvalResult {
 	c.send(Request{
 		"op":   "eval",
 		"code": code,
+		"ns":   c.CurrentNS(),
 	})
 	return <-c.ch
 }
