@@ -6,17 +6,19 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 
 	"github.com/athos/trenchman/trenchman/nrepl"
 	"github.com/fatih/color"
 )
 
 type Repl struct {
-	client *nrepl.Client
-	in     *interruptibleReader
-	out    io.Writer
-	err    io.Writer
-	cancel chan struct{}
+	client  *nrepl.Client
+	in      *interruptibleReader
+	out     io.Writer
+	err     io.Writer
+	cancel  chan struct{}
+	reading atomic.Value
 }
 
 func NewRepl(
@@ -34,7 +36,15 @@ func NewRepl(
 	}
 	client := factory(repl)
 	repl.client = client
+	repl.reading.Store(false)
 	return repl
+}
+
+func (r *Repl) readLine() (string, error) {
+	r.reading.Store(true)
+	ret, err := r.in.ReadLine()
+	r.reading.Store(false)
+	return ret, err
 }
 
 func (r *Repl) Out(s string) {
@@ -54,7 +64,7 @@ func (r *Repl) Err(s string, fatal bool) {
 }
 
 func (r *Repl) In() (string, bool) {
-	line, err := r.in.ReadLine()
+	line, err := r.readLine()
 	if err != nil {
 		if err == errInterrupted {
 			return "", false
@@ -67,7 +77,7 @@ func (r *Repl) In() (string, bool) {
 func (r *Repl) Start() {
 	for {
 		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
-		code, err := r.in.ReadLine()
+		code, err := r.readLine()
 		if err != nil {
 			switch err {
 			case io.EOF:
@@ -101,7 +111,9 @@ func (r *Repl) StartWatchingInterruption() {
 		for {
 			<-interrupt
 			r.client.Interrupt()
-			r.cancel <- struct{}{}
+			if r.reading.Load().(bool) {
+				r.cancel <- struct{}{}
+			}
 		}
 	}()
 }
