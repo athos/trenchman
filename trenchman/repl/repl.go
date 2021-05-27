@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -14,21 +13,24 @@ import (
 
 type Repl struct {
 	client *nrepl.Client
-	in     *bufio.Reader
+	in     *interruptibleReader
 	out    io.Writer
 	err    io.Writer
+	cancel chan struct{}
 }
 
 func NewRepl(
-	in io.Reader,
+	in io.ReadCloser,
 	out io.Writer,
 	err io.Writer,
 	factory func(nrepl.IOHandler) *nrepl.Client,
 ) *Repl {
+	ch := make(chan struct{}, 1)
 	repl := &Repl{
-		in:  bufio.NewReader(in),
-		out: out,
-		err: err,
+		in:     newReader(ch, in),
+		out:    out,
+		err:    err,
+		cancel: ch,
 	}
 	client := factory(repl)
 	repl.client = client
@@ -51,24 +53,31 @@ func (r *Repl) Err(s string, fatal bool) {
 	}
 }
 
-func (r *Repl) In() string {
-	line, err := r.in.ReadString('\n')
+func (r *Repl) In() (string, bool) {
+	line, err := r.in.ReadLine()
 	if err != nil {
+		if err == errInterrupted {
+			return "", false
+		}
 		panic(err)
 	}
-	return line
+	return line, true
 }
 
 func (r *Repl) Start() {
 	for {
 		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
-		code, err := r.in.ReadString('\n')
+		code, err := r.in.ReadLine()
 		if err != nil {
-			if err == io.EOF {
+			switch err {
+			case io.EOF:
 				r.client.Close()
 				return
+			case errInterrupted:
+				continue
+			default:
+				panic(err)
 			}
-			panic(err)
 		}
 		code = strings.TrimSpace(code)
 		if code == "" {
@@ -92,6 +101,7 @@ func (r *Repl) StartWatchingInterruption() {
 		for {
 			<-interrupt
 			r.client.Interrupt()
+			r.cancel <- struct{}{}
 		}
 	}()
 }

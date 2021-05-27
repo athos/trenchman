@@ -10,7 +10,7 @@ import (
 
 type (
 	IOHandler interface {
-		In() string
+		In() (ret string, ok bool)
 		Out(s string)
 		Err(s string, fatal bool)
 	}
@@ -123,7 +123,12 @@ func (c *Client) handleResp(resp Response) {
 func (c *Client) handleStatusUpdate(resp Response) {
 	status := resp["status"]
 	if c.statusContains(status, "need-input") {
-		c.stdin(c.ioHandler.In())
+		input, ok := c.ioHandler.In()
+		// If not ok, input request must have been cancelled by user
+		// So, then nothing to do more
+		if ok {
+			c.stdin(input)
+		}
 	} else if c.statusContains(status, "done") {
 		if has(resp, "id") && c.pending.id == resp["id"].(string) {
 			c.pending = nil
