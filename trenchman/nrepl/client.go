@@ -113,17 +113,21 @@ func (c *Client) handleResp(resp Response) {
 	case has(resp, "err"):
 		c.ioHandler.Err(resp["err"].(string), false)
 	case has(resp, "status"):
-		status := resp["status"]
-		if c.statusContains(status, "need-input") {
-			c.stdin(c.ioHandler.In())
-		} else if c.statusContains(status, "done") {
-			if has(resp, "id") && c.pending.id == resp["id"].(string) {
-				c.pending = nil
-			}
-		}
+		c.handleStatusUpdate(resp)
 	default:
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
 		c.ioHandler.Err(msg, true)
+	}
+}
+
+func (c *Client) handleStatusUpdate(resp Response) {
+	status := resp["status"]
+	if c.statusContains(status, "need-input") {
+		c.stdin(c.ioHandler.In())
+	} else if c.statusContains(status, "done") {
+		if has(resp, "id") && c.pending.id == resp["id"].(string) {
+			c.pending = nil
+		}
 	}
 }
 
@@ -156,7 +160,7 @@ func (c *Client) stdin(in string) {
 func (c *Client) Interrupt() {
 	if c.pending != nil {
 		c.send(Request{
-			"op": "interrupt",
+			"op":           "interrupt",
 			"interrupt-id": c.pending.id,
 		})
 	}
