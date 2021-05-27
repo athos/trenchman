@@ -10,7 +10,8 @@ type (
 	interruptibleReader struct {
 		reader   *bufio.Reader
 		cancelCh chan struct{}
-		notifyCh chan chan result
+		notifyCh chan struct{}
+		resultCh chan result
 	}
 
 	result struct {
@@ -22,36 +23,39 @@ type (
 var errInterrupted = errors.New("read interrupted")
 
 func newReader(cancelCh chan struct{}, r io.Reader) *interruptibleReader {
-	notifyCh := make(chan chan result)
 	reader := &interruptibleReader{
 		reader:   bufio.NewReader(r),
 		cancelCh: cancelCh,
-		notifyCh: notifyCh,
+		notifyCh: make(chan struct{}),
+		resultCh: make(chan result),
 	}
 	go func() {
-		for c := range notifyCh {
+		for range reader.notifyCh {
 			var res result
 			res.s, res.err = reader.reader.ReadString('\n')
-			select {
-			case c <- res:
-			default:
-			}
+			reader.resultCh <- res
 		}
 	}()
 	return reader
 }
 
 func (r *interruptibleReader) ReadLine() (string, error) {
-	resultCh := make(chan result)
-	r.notifyCh <- resultCh
 	select {
-	case res := <-resultCh:
-		return res.s, res.err
 	case <-r.cancelCh:
 		return "", errInterrupted
+	case res := <-r.resultCh:
+		return res.s, res.err
+	case r.notifyCh <- struct{}{}:
+		select {
+		case <-r.cancelCh:
+			return "", errInterrupted
+		case res := <-r.resultCh:
+			return res.s, res.err
+		}
 	}
 }
 
-func (r *interruptibleReader) Dispose() {
+func (r *interruptibleReader) Close() error {
 	close(r.notifyCh)
+	return nil
 }
