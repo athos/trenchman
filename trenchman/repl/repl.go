@@ -100,13 +100,14 @@ func (r *Repl) Start() {
 		if code == "" {
 			continue
 		}
-		result := r.client.Eval(code)
-		if res, ok := result.(string); ok {
-			color.Set(color.FgGreen)
-			fmt.Fprintln(r.out, res)
-			color.Unset()
-		} else if _, ok := result.(*nrepl.RuntimeError); !ok {
-			panic("unexpected result received")
+		for res := range r.client.Eval(code) {
+			if s, ok := res.(string); ok {
+				color.Set(color.FgGreen)
+				fmt.Fprintln(r.out, s)
+				color.Unset()
+			} else if _, ok := res.(*nrepl.RuntimeError); !ok {
+				panic("unexpected result received")
+			}
 		}
 	}
 }

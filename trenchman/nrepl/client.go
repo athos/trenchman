@@ -2,7 +2,7 @@ package nrepl
 
 import (
 	"fmt"
-	"sync/atomic"
+	"sync"
 
 	"github.com/athos/trenchman/trenchman/bencode"
 	"github.com/google/uuid"
@@ -17,18 +17,15 @@ type (
 
 	Client struct {
 		conn      *Conn
+		lock      sync.RWMutex
 		session   Session
-		ns        atomic.Value
-		ch        chan EvalResult
+		ns        string
 		ioHandler IOHandler
 		done      chan struct{}
-		pending   *pending
+		pending   map[string]chan EvalResult
 	}
 
 	Session string
-	pending struct {
-		id string
-	}
 
 	// EvalResult is either string or RuntimeError
 	EvalResult interface{}
@@ -44,9 +41,9 @@ func (e *RuntimeError) Error() string {
 
 func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	client := &Client{
-		ch:        make(chan EvalResult),
 		ioHandler: ioHandler,
 		done:      make(chan struct{}),
+		pending: map[string]chan EvalResult{},
 	}
 	builder := NewBuilder(host, port)
 	builder.Handler = func(r Response) { client.handleResp(r) }
@@ -63,7 +60,7 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	}
 	client.conn = conn
 	client.session = Session(session)
-	client.ns.Store("user")
+	client.ns = "user"
 	go conn.startLoop(client.done)
 	return client, nil
 }
@@ -73,12 +70,11 @@ func (c *Client) Close() error {
 	if err := c.conn.Close(); err != nil {
 		return err
 	}
-	close(c.ch)
 	return nil
 }
 
 func (c *Client) CurrentNS() string {
-	return c.ns.Load().(string)
+	return c.ns
 }
 
 func has(resp Response, key string) bool {
@@ -104,10 +100,18 @@ func (c *Client) handleResp(resp Response) {
 	//fmt.Printf("RESP: %v\n", resp)
 	switch {
 	case has(resp, "value"):
-		c.ns.Store(resp["ns"].(string))
-		c.ch <- resp["value"].(string)
+		id := resp["id"].(string)
+		c.lock.Lock()
+		ch := c.pending[id]
+		c.ns = resp["ns"].(string)
+		c.lock.Unlock()
+		ch <- resp["value"].(string)
 	case has(resp, "ex"):
-		c.ch <- &RuntimeError{resp["ex"].(string)}
+		id := resp["id"].(string)
+		c.lock.RLock()
+		ch := c.pending[id]
+		c.lock.RUnlock()
+		ch <- &RuntimeError{resp["ex"].(string)}
 	case has(resp, "out"):
 		c.ioHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
@@ -130,8 +134,13 @@ func (c *Client) handleStatusUpdate(resp Response) {
 			c.stdin(input)
 		}
 	} else if c.statusContains(status, "done") {
-		if has(resp, "id") && c.pending.id == resp["id"].(string) {
-			c.pending = nil
+		if has(resp, "id") {
+			id := resp["id"].(string)
+			c.lock.Lock()
+			ch := c.pending[id]
+			delete(c.pending, id)
+			c.lock.Unlock()
+			close(ch)
 		}
 	}
 }
@@ -143,16 +152,19 @@ func (c *Client) send(req Request) {
 	}
 }
 
-func (c *Client) Eval(code string) EvalResult {
+func (c *Client) Eval(code string) <-chan EvalResult {
 	id := uuid.NewString()
-	c.pending = &pending{id}
+	ch := make(chan EvalResult)
+	c.lock.Lock()
+	c.pending[id] = ch
+	c.lock.Unlock()
 	c.send(Request{
 		"op":   "eval",
 		"id":   id,
 		"code": code,
 		"ns":   c.CurrentNS(),
 	})
-	return <-c.ch
+	return ch
 }
 
 func (c *Client) stdin(in string) {
@@ -163,10 +175,16 @@ func (c *Client) stdin(in string) {
 }
 
 func (c *Client) Interrupt() {
-	if c.pending != nil {
+	ids := []string{}
+	c.lock.RLock()
+	for id := range c.pending {
+		ids = append(ids, id)
+	}
+	c.lock.RUnlock()
+	for _, id := range ids {
 		c.send(Request{
 			"op":           "interrupt",
-			"interrupt-id": c.pending.id,
+			"interrupt-id": id,
 		})
 	}
 }
