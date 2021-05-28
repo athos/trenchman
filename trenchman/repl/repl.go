@@ -17,7 +17,7 @@ type Repl struct {
 	in      *interruptibleReader
 	out     io.Writer
 	err     io.Writer
-	cancel  chan struct{}
+	cancel  chan<- struct{}
 	reading atomic.Value
 }
 
@@ -40,9 +40,16 @@ func NewRepl(
 	return repl
 }
 
+func (r *Repl) Close() error {
+	if err := r.in.Close(); err != nil {
+		return err
+	}
+	return r.client.Close()
+}
+
 func (r *Repl) readLine() (string, error) {
 	r.reading.Store(true)
-	ret, err := r.in.ReadLine()
+	ret, err := r.in.readLine()
 	r.reading.Store(false)
 	return ret, err
 }
@@ -75,13 +82,13 @@ func (r *Repl) In() (string, bool) {
 }
 
 func (r *Repl) Start() {
+	defer r.Close()
 	for {
 		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
 		code, err := r.readLine()
 		if err != nil {
 			switch err {
 			case io.EOF:
-				r.client.Close()
 				return
 			case errInterrupted:
 				continue
