@@ -17,6 +17,7 @@ type Repl struct {
 	in       *interruptibleReader
 	out      io.Writer
 	err      io.Writer
+	printer  Printer
 	cancel   chan<- struct{}
 	reading  atomic.Value
 	hidesNil bool
@@ -26,6 +27,7 @@ type Opts struct {
 	In       io.Reader
 	Out      io.Writer
 	Err      io.Writer
+	Printer  Printer
 	HidesNil bool
 }
 
@@ -36,6 +38,7 @@ func NewRepl(opts *Opts, factory func(nrepl.IOHandler) *nrepl.Client) *Repl {
 		out:      opts.Out,
 		err:      opts.Err,
 		cancel:   ch,
+		printer:  opts.Printer,
 		hidesNil: opts.HidesNil,
 	}
 	client := factory(repl)
@@ -59,19 +62,14 @@ func (r *Repl) readLine() (string, error) {
 }
 
 func (r *Repl) Out(s string) {
-	color.Set(color.FgYellow)
-	fmt.Fprint(r.out, s)
-	color.Unset()
+	r.printer.With(color.FgYellow).Fprint(r.out, s)
 }
 
 func (r *Repl) Err(s string, fatal bool) {
 	if fatal {
 		panic(s)
-	} else {
-		color.Set(color.FgRed)
-		fmt.Fprint(r.err, s)
-		color.Unset()
 	}
+	r.printer.With(color.FgRed).Fprint(r.err, s)
 }
 
 func (r *Repl) In() (string, bool) {
@@ -89,9 +87,7 @@ func (r *Repl) Eval(code string) {
 	for res := range r.client.Eval(code) {
 		if s, ok := res.(string); ok {
 			if !r.hidesNil || s != "nil" {
-				color.Set(color.FgGreen)
-				fmt.Fprintln(r.out, s)
-				color.Unset()
+				r.printer.With(color.FgGreen).Fprintln(r.out, s)
 			}
 		} else if _, ok := res.(*nrepl.RuntimeError); !ok {
 			panic("unexpected result received")
