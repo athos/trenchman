@@ -100,7 +100,6 @@ func (r *Repl) Eval(code string) {
 }
 
 func (r *Repl) Start() {
-	defer r.Close()
 	for {
 		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
 		code, err := r.readLine()

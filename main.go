@@ -31,11 +31,12 @@ func main() {
 		}
 		return client
 	})
-	repl.StartWatchingInterruption()
+	defer repl.Close()
 
 	if oneshotEval {
 		repl.Eval(code)
 		return
 	}
+	repl.StartWatchingInterruption()
 	repl.Start()
 }
