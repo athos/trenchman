@@ -19,16 +19,18 @@ func main() {
 	kong.Parse(&opts)
 	code := strings.TrimSpace(opts.Eval)
 	oneshotEval := code != ""
-	repl := repl.NewRepl(
-		os.Stdin, os.Stdout, os.Stderr, oneshotEval,
-		func(ioHandler nrepl.IOHandler) *nrepl.Client {
-			client, err := nrepl.NewClient(opts.Host, opts.Port, ioHandler)
-			if err != nil {
-				panic(err)
-			}
-			return client
-		},
-	)
+	repl := repl.NewRepl(&repl.Opts{
+		In:       os.Stdin,
+		Out:      os.Stdout,
+		Err:      os.Stderr,
+		HidesNil: oneshotEval,
+	}, func(ioHandler nrepl.IOHandler) *nrepl.Client {
+		client, err := nrepl.NewClient(opts.Host, opts.Port, ioHandler)
+		if err != nil {
+			panic(err)
+		}
+		return client
+	})
 	repl.StartWatchingInterruption()
 
 	if oneshotEval {

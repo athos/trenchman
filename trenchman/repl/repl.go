@@ -22,20 +22,21 @@ type Repl struct {
 	hidesNil bool
 }
 
-func NewRepl(
-	in io.ReadCloser,
-	out io.Writer,
-	err io.Writer,
-	hidesNil bool,
-	factory func(nrepl.IOHandler) *nrepl.Client,
-) *Repl {
+type Opts struct {
+	In       io.Reader
+	Out      io.Writer
+	Err      io.Writer
+	HidesNil bool
+}
+
+func NewRepl(opts *Opts, factory func(nrepl.IOHandler) *nrepl.Client) *Repl {
 	ch := make(chan struct{}, 1)
 	repl := &Repl{
-		in:     newReader(ch, in),
-		out:    out,
-		err:    err,
-		cancel: ch,
-		hidesNil: hidesNil,
+		in:       newReader(ch, opts.In),
+		out:      opts.Out,
+		err:      opts.Err,
+		cancel:   ch,
+		hidesNil: opts.HidesNil,
 	}
 	client := factory(repl)
 	repl.client = client
