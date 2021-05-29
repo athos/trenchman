@@ -13,18 +13,20 @@ import (
 )
 
 type Repl struct {
-	client  *nrepl.Client
-	in      *interruptibleReader
-	out     io.Writer
-	err     io.Writer
-	cancel  chan<- struct{}
-	reading atomic.Value
+	client   *nrepl.Client
+	in       *interruptibleReader
+	out      io.Writer
+	err      io.Writer
+	cancel   chan<- struct{}
+	reading  atomic.Value
+	hidesNil bool
 }
 
 func NewRepl(
 	in io.ReadCloser,
 	out io.Writer,
 	err io.Writer,
+	hidesNil bool,
 	factory func(nrepl.IOHandler) *nrepl.Client,
 ) *Repl {
 	ch := make(chan struct{}, 1)
@@ -33,6 +35,7 @@ func NewRepl(
 		out:    out,
 		err:    err,
 		cancel: ch,
+		hidesNil: hidesNil,
 	}
 	client := factory(repl)
 	repl.client = client
@@ -81,6 +84,20 @@ func (r *Repl) In() (string, bool) {
 	return line, true
 }
 
+func (r *Repl) Eval(code string) {
+	for res := range r.client.Eval(code) {
+		if s, ok := res.(string); ok {
+			if !r.hidesNil || s != "nil" {
+				color.Set(color.FgGreen)
+				fmt.Fprintln(r.out, s)
+				color.Unset()
+			}
+		} else if _, ok := res.(*nrepl.RuntimeError); !ok {
+			panic("unexpected result received")
+		}
+	}
+}
+
 func (r *Repl) Start() {
 	defer r.Close()
 	for {
@@ -100,15 +117,7 @@ func (r *Repl) Start() {
 		if code == "" {
 			continue
 		}
-		for res := range r.client.Eval(code) {
-			if s, ok := res.(string); ok {
-				color.Set(color.FgGreen)
-				fmt.Fprintln(r.out, s)
-				color.Unset()
-			} else if _, ok := res.(*nrepl.RuntimeError); !ok {
-				panic("unexpected result received")
-			}
-		}
+		r.Eval(code)
 	}
 }
 
