@@ -83,8 +83,8 @@ func (r *Repl) In() (string, bool) {
 	return line, true
 }
 
-func (r *Repl) Eval(code string) {
-	for res := range r.client.Eval(code) {
+func (r *Repl) handleResults(ch <-chan nrepl.EvalResult) {
+	for res := range ch {
 		if s, ok := res.(string); ok {
 			if !r.hidesNil || s != "nil" {
 				r.printer.With(color.FgGreen).Fprintln(r.out, s)
@@ -93,6 +93,18 @@ func (r *Repl) Eval(code string) {
 			panic("unexpected result received")
 		}
 	}
+}
+
+func (r *Repl) Eval(code string) {
+	r.handleResults(r.client.Eval(code))
+}
+
+func (r *Repl) Load(filename string) {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		panic(fmt.Errorf("cannot read file %s (%w)", filename, err).Error())
+	}
+	r.handleResults(r.client.Load(filename, string(content)))
 }
 
 func (r *Repl) Start() {

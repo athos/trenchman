@@ -20,12 +20,13 @@ const (
 	COLOR_ALWAYS = "always"
 )
 
-var opts struct {
-	Host  string `name:"host" short:"H" help:"host" default:"127.0.0.1"`
-	Port  int    `name:"port" short:"p" help:"port"`
-	Eval  string `name:"eval" short:"e" help:"eval"`
-	Color string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
-	Version bool `name:"version" short:"v" help:"Show version"`
+var args struct {
+	Host     string `name:"host" short:"H" help:"host" default:"127.0.0.1"`
+	Port     int    `name:"port" short:"p" help:"port"`
+	Eval     string `name:"eval" short:"e" help:"eval"`
+	Color    string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
+	Version  bool   `name:"version" short:"v" help:"Show version"`
+	Filename string `arg:"true" optional:"true"`
 }
 
 func detectNreplPort(portFile string) (int, error) {
@@ -56,13 +57,13 @@ func colorized(color string) bool {
 }
 
 func main() {
-	kong.Parse(&opts)
-	if opts.Version {
+	kong.Parse(&args)
+	if args.Version {
 		fmt.Printf("Trenchman %s\n", version)
 		os.Exit(0)
 	}
 
-	port := opts.Port
+	port := args.Port
 	if port == 0 {
 		p, err := detectNreplPort(".nrepl-port")
 		if err != nil {
@@ -70,16 +71,16 @@ func main() {
 		}
 		port = p
 	}
-	code := strings.TrimSpace(opts.Eval)
-	oneshotEval := code != ""
+	filename := strings.TrimSpace(args.Filename)
+	code := strings.TrimSpace(args.Eval)
 	repl := repl.NewRepl(&repl.Opts{
 		In:       os.Stdin,
 		Out:      os.Stdout,
 		Err:      os.Stderr,
-		Printer:  repl.NewPrinter(colorized(opts.Color)),
-		HidesNil: oneshotEval,
+		Printer:  repl.NewPrinter(colorized(args.Color)),
+		HidesNil: filename != "" || code != "",
 	}, func(ioHandler nrepl.IOHandler) *nrepl.Client {
-		client, err := nrepl.NewClient(opts.Host, port, ioHandler)
+		client, err := nrepl.NewClient(args.Host, port, ioHandler)
 		if err != nil {
 			panic(err)
 		}
@@ -87,7 +88,11 @@ func main() {
 	})
 	defer repl.Close()
 
-	if oneshotEval {
+	if filename != "" {
+		repl.Load(filename)
+		return
+	}
+	if code != "" {
 		repl.Eval(code)
 		return
 	}

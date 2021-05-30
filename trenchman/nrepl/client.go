@@ -2,6 +2,7 @@ package nrepl
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/athos/trenchman/trenchman/bencode"
@@ -43,7 +44,7 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	client := &Client{
 		ioHandler: ioHandler,
 		done:      make(chan struct{}),
-		pending: map[string]chan EvalResult{},
+		pending:   map[string]chan EvalResult{},
 	}
 	builder := NewBuilder(host, port)
 	builder.Handler = func(r Response) { client.handleResp(r) }
@@ -103,7 +104,9 @@ func (c *Client) handleResp(resp Response) {
 		id := resp["id"].(string)
 		c.lock.Lock()
 		ch := c.pending[id]
-		c.ns = resp["ns"].(string)
+		if has(resp, "ns") {
+			c.ns = resp["ns"].(string)
+		}
 		c.lock.Unlock()
 		ch <- resp["value"].(string)
 	case has(resp, "ex"):
@@ -152,17 +155,37 @@ func (c *Client) send(req Request) {
 	}
 }
 
-func (c *Client) Eval(code string) <-chan EvalResult {
+func (c *Client) newIdChan() (string, chan EvalResult) {
 	id := uuid.NewString()
 	ch := make(chan EvalResult)
 	c.lock.Lock()
 	c.pending[id] = ch
 	c.lock.Unlock()
+	return id, ch
+}
+
+func (c *Client) Eval(code string) <-chan EvalResult {
+	id, ch := c.newIdChan()
 	c.send(Request{
 		"op":   "eval",
 		"id":   id,
 		"code": code,
 		"ns":   c.CurrentNS(),
+	})
+	return ch
+}
+
+func (c *Client) Load(filename string, content string) <-chan EvalResult {
+	id, ch := c.newIdChan()
+	base := filepath.Base(filename)
+	dir := filepath.Dir(filename)
+	c.send(Request{
+		"op":        "load-file",
+		"id":        id,
+		"ns":        c.CurrentNS(),
+		"file":      content,
+		"file-name": base,
+		"file-path": dir,
 	})
 	return ch
 }
