@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/athos/trenchman/trenchman/repl"
 	"github.com/mattn/go-isatty"
 )
+
+var version = "v0.0.0"
 
 const (
 	COLOR_NONE   = "none"
@@ -21,6 +24,7 @@ var opts struct {
 	Port  int    `name:"port" short:"p" required:"true" help:"port"`
 	Eval  string `name:"eval" short:"e" help:"eval"`
 	Color string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
+	Version bool `name:"version" short:"v" help:"Show version"`
 }
 
 func colorized(color string) bool {
@@ -40,6 +44,11 @@ func colorized(color string) bool {
 
 func main() {
 	kong.Parse(&opts)
+	if opts.Version {
+		fmt.Printf("Trenchman %s\n", version)
+		os.Exit(0)
+	}
+
 	code := strings.TrimSpace(opts.Eval)
 	oneshotEval := code != ""
 	repl := repl.NewRepl(&repl.Opts{
