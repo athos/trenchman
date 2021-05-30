@@ -23,7 +23,7 @@ type (
 		errHandler ErrHandler
 	}
 
-	ConnBuilder struct {
+	ConnOpts struct {
 		Host       string
 		Port       int
 		Handler    Handler
@@ -31,12 +31,8 @@ type (
 	}
 )
 
-func NewBuilder(host string, port int) *ConnBuilder {
-	return &ConnBuilder{Host: host, Port: port}
-}
-
-func (b *ConnBuilder) Connect() (conn *Conn, err error) {
-	socket, err := net.Dial("tcp", fmt.Sprintf("%s:%d", b.Host, b.Port))
+func Connect(opts *ConnOpts) (conn *Conn, err error) {
+	socket, err := net.Dial("tcp", fmt.Sprintf("%s:%d", opts.Host, opts.Port))
 	if err != nil {
 		return
 	}
@@ -44,8 +40,8 @@ func (b *ConnBuilder) Connect() (conn *Conn, err error) {
 		socket:     socket,
 		encoder:    bencode.NewEncoder(socket),
 		decoder:    bencode.NewDecoder(socket),
-		handler:    b.Handler,
-		errHandler: b.ErrHandler,
+		handler:    opts.Handler,
+		errHandler: opts.ErrHandler,
 	}, nil
 }
 

@@ -46,12 +46,15 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 		done:      make(chan struct{}),
 		pending:   map[string]chan EvalResult{},
 	}
-	builder := NewBuilder(host, port)
-	builder.Handler = func(r Response) { client.handleResp(r) }
-	builder.ErrHandler = func(err error) {
-		ioHandler.Err(err.Error(), true)
+	opts := &ConnOpts{
+		Host:    host,
+		Port:    port,
+		Handler: func(r Response) { client.handleResp(r) },
+		ErrHandler: func(err error) {
+			ioHandler.Err(err.Error(), true)
+		},
 	}
-	conn, err := builder.Connect()
+	conn, err := Connect(opts)
 	if err != nil {
 		return nil, err
 	}
