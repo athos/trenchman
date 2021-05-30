@@ -17,16 +17,14 @@ type (
 	}
 
 	Client struct {
-		conn      *Conn
-		lock      sync.RWMutex
-		session   Session
-		ns        string
-		ioHandler IOHandler
-		done      chan struct{}
-		pending   map[string]chan EvalResult
+		conn        *Conn
+		lock        sync.RWMutex
+		sessionInfo *SessionInfo
+		ns          string
+		ioHandler   IOHandler
+		done        chan struct{}
+		pending     map[string]chan EvalResult
 	}
-
-	Session string
 
 	// EvalResult is either string or RuntimeError
 	EvalResult interface{}
@@ -42,6 +40,7 @@ func (e *RuntimeError) Error() string {
 
 func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	client := &Client{
+		ns:        "user",
 		ioHandler: ioHandler,
 		done:      make(chan struct{}),
 		pending:   map[string]chan EvalResult{},
@@ -58,13 +57,12 @@ func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	session, err := conn.initSession()
+	sessionInfo, err := conn.initSession()
 	if err != nil {
 		return nil, err
 	}
 	client.conn = conn
-	client.session = Session(session)
-	client.ns = "user"
+	client.sessionInfo = sessionInfo
 	go conn.startLoop(client.done)
 	return client, nil
 }
@@ -79,6 +77,14 @@ func (c *Client) Close() error {
 
 func (c *Client) CurrentNS() string {
 	return c.ns
+}
+
+func (c *Client) SupportsOp(op string) bool {
+	if c.sessionInfo == nil {
+		return false
+	}
+	_, ok := c.sessionInfo.ops[op]
+	return ok
 }
 
 func has(resp Response, key string) bool {
@@ -152,7 +158,9 @@ func (c *Client) handleStatusUpdate(resp Response) {
 }
 
 func (c *Client) send(req Request) {
-	req["session"] = string(c.session)
+	if c.sessionInfo != nil {
+		req["session"] = c.sessionInfo.session
+	}
 	if err := c.conn.sendReq(req); err != nil {
 		c.ioHandler.Err(err.Error(), true)
 	}

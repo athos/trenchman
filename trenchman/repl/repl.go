@@ -54,6 +54,10 @@ func (r *Repl) Close() error {
 	return r.client.Close()
 }
 
+func (r *Repl) SupportsOp(op string) bool {
+	return r.client.SupportsOp(op)
+}
+
 func (r *Repl) readLine() (string, error) {
 	r.reading.Store(true)
 	ret, err := r.in.readLine()

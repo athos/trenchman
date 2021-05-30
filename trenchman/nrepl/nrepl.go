@@ -29,6 +29,11 @@ type (
 		Handler    Handler
 		ErrHandler ErrHandler
 	}
+
+	SessionInfo struct {
+		session string
+		ops     map[string]struct{}
+	}
 )
 
 func Connect(opts *ConnOpts) (conn *Conn, err error) {
@@ -61,7 +66,7 @@ func (conn *Conn) recvResp() (resp Response, err error) {
 	return Response(dict), nil
 }
 
-func (conn *Conn) initSession() (session string, err error) {
+func (conn *Conn) initSession() (ret *SessionInfo, err error) {
 	req := Request{
 		"op": "clone",
 		"id": "init",
@@ -77,6 +82,21 @@ func (conn *Conn) initSession() (session string, err error) {
 	if !ok {
 		err = fmt.Errorf("illegal session id: %v", resp["new-session"])
 		return
+	}
+	if err = conn.sendReq(Request{"op": "describe"}); err != nil {
+		return
+	}
+	resp, err = conn.recvResp()
+	if err != nil {
+		return
+	}
+	ops := map[string]struct{}{}
+	for k, _ := range resp["ops"].(map[string]bencode.Datum) {
+		ops[k] = struct{}{}
+	}
+	ret = &SessionInfo{
+		session: session,
+		ops:     ops,
 	}
 	return
 }
