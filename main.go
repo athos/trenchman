@@ -73,14 +73,19 @@ func main() {
 	}
 	filename := strings.TrimSpace(args.Filename)
 	code := strings.TrimSpace(args.Eval)
+	oneshotCmd := filename != "" || code != ""
 	repl := repl.NewRepl(&repl.Opts{
 		In:       os.Stdin,
 		Out:      os.Stdout,
 		Err:      os.Stderr,
 		Printer:  repl.NewPrinter(colorized(args.Color)),
-		HidesNil: filename != "" || code != "",
+		HidesNil: oneshotCmd,
 	}, func(ioHandler nrepl.IOHandler) *nrepl.Client {
-		client, err := nrepl.NewClient(args.Host, port, ioHandler)
+		client, err := nrepl.NewClient(&nrepl.Opts{
+			Host:      args.Host,
+			Port:      port,
+			IOHandler: ioHandler,
+		})
 		if err != nil {
 			panic(err)
 		}
@@ -96,6 +101,8 @@ func main() {
 		repl.Eval(code)
 		return
 	}
-	repl.StartWatchingInterruption()
+	if repl.SupportsOp("interrupt") {
+		repl.StartWatchingInterruption()
+	}
 	repl.Start()
 }

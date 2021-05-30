@@ -10,12 +10,6 @@ import (
 )
 
 type (
-	IOHandler interface {
-		In() (ret string, ok bool)
-		Out(s string)
-		Err(s string, fatal bool)
-	}
-
 	Client struct {
 		conn        *Conn
 		lock        sync.RWMutex
@@ -24,6 +18,19 @@ type (
 		ioHandler   IOHandler
 		done        chan struct{}
 		pending     map[string]chan EvalResult
+	}
+
+	Opts struct {
+		Host      string
+		Port      int
+		Oneshot   bool
+		IOHandler IOHandler
+	}
+
+	IOHandler interface {
+		In() (ret string, ok bool)
+		Out(s string)
+		Err(s string, fatal bool)
 	}
 
 	// EvalResult is either string or RuntimeError
@@ -38,31 +45,33 @@ func (e *RuntimeError) Error() string {
 	return e.err
 }
 
-func NewClient(host string, port int, ioHandler IOHandler) (*Client, error) {
+func NewClient(clientOpts *Opts) (*Client, error) {
 	client := &Client{
 		ns:        "user",
-		ioHandler: ioHandler,
+		ioHandler: clientOpts.IOHandler,
 		done:      make(chan struct{}),
 		pending:   map[string]chan EvalResult{},
 	}
 	opts := &ConnOpts{
-		Host:    host,
-		Port:    port,
+		Host:    clientOpts.Host,
+		Port:    clientOpts.Port,
 		Handler: func(r Response) { client.handleResp(r) },
 		ErrHandler: func(err error) {
-			ioHandler.Err(err.Error(), true)
+			client.ioHandler.Err(err.Error(), true)
 		},
 	}
 	conn, err := Connect(opts)
 	if err != nil {
 		return nil, err
 	}
-	sessionInfo, err := conn.initSession()
-	if err != nil {
-		return nil, err
-	}
 	client.conn = conn
-	client.sessionInfo = sessionInfo
+	if !clientOpts.Oneshot {
+		sessionInfo, err := conn.initSession()
+		if err != nil {
+			return nil, err
+		}
+		client.sessionInfo = sessionInfo
+	}
 	go conn.startLoop(client.done)
 	return client, nil
 }
