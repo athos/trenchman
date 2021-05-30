@@ -21,12 +21,12 @@ const (
 )
 
 var args struct {
-	Host     string `name:"host" short:"H" help:"host" default:"127.0.0.1"`
-	Port     int    `name:"port" short:"p" help:"port"`
-	Eval     string `name:"eval" short:"e" help:"eval"`
-	Color    string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
-	Version  bool   `name:"version" short:"v" help:"Show version"`
-	Filename string `arg:"true" optional:"true"`
+	Host        string `name:"host" short:"H" help:"host" default:"127.0.0.1"`
+	Port        int    `name:"port" short:"p" help:"port"`
+	Eval        string `name:"eval" short:"e" help:"eval"`
+	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
+	Version     bool   `name:"version" short:"v" help:"Show version"`
+	Filename    string `arg:"true" optional:"true"`
 }
 
 func detectNreplPort(portFile string) (int, error) {
@@ -41,8 +41,8 @@ func detectNreplPort(portFile string) (int, error) {
 	return port, nil
 }
 
-func colorized(color string) bool {
-	switch color {
+func colorized(colorOption string) bool {
+	switch colorOption {
 	case COLOR_NONE:
 		return false
 	case COLOR_ALWAYS:
@@ -54,6 +54,23 @@ func colorized(color string) bool {
 		}
 	}
 	return false
+}
+
+func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
+	opts.In = os.Stdin
+	opts.Out = os.Stdout
+	opts.Err = os.Stderr
+	return repl.NewRepl(opts, func(ioHandler nrepl.IOHandler) *nrepl.Client {
+		client, err := nrepl.NewClient(&nrepl.Opts{
+			Host:      host,
+			Port:      port,
+			IOHandler: ioHandler,
+		})
+		if err != nil {
+			panic(err)
+		}
+		return client
+	})
 }
 
 func main() {
@@ -73,24 +90,11 @@ func main() {
 	}
 	filename := strings.TrimSpace(args.Filename)
 	code := strings.TrimSpace(args.Eval)
-	oneshotCmd := filename != "" || code != ""
-	repl := repl.NewRepl(&repl.Opts{
-		In:       os.Stdin,
-		Out:      os.Stdout,
-		Err:      os.Stderr,
-		Printer:  repl.NewPrinter(colorized(args.Color)),
-		HidesNil: oneshotCmd,
-	}, func(ioHandler nrepl.IOHandler) *nrepl.Client {
-		client, err := nrepl.NewClient(&nrepl.Opts{
-			Host:      args.Host,
-			Port:      port,
-			IOHandler: ioHandler,
-		})
-		if err != nil {
-			panic(err)
-		}
-		return client
-	})
+	opts := &repl.Opts{
+		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
+		HidesNil: filename != "" || code != "",
+	}
+	repl := setupRepl(args.Host, port, opts)
 	defer repl.Close()
 
 	if filename != "" {
