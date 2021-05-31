@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -104,9 +105,19 @@ func (r *Repl) Eval(code string) {
 }
 
 func (r *Repl) Load(filename string) {
-	content, err := os.ReadFile(filename)
+	var reader *bufio.Reader
+	if filename == "-" {
+		reader = bufio.NewReader(os.Stdin)
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+			panic(fmt.Errorf("cannot read file %s (%w)", filename, err))
+		}
+		reader = bufio.NewReader(file)
+	}
+	content, err := io.ReadAll(reader)
 	if err != nil {
-		panic(fmt.Errorf("cannot read file %s (%w)", filename, err).Error())
+		panic(fmt.Errorf("cannot read file %s (%w)", filename, err))
 	}
 	r.handleResults(r.client.Load(filename, string(content)))
 }

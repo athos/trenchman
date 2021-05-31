@@ -197,16 +197,17 @@ func (c *Client) Eval(code string) <-chan EvalResult {
 
 func (c *Client) Load(filename string, content string) <-chan EvalResult {
 	id, ch := c.newIdChan()
-	base := filepath.Base(filename)
-	dir := filepath.Dir(filename)
-	c.send(Request{
+	req := Request{
 		"op":        "load-file",
 		"id":        id,
 		"ns":        c.CurrentNS(),
 		"file":      content,
-		"file-name": base,
-		"file-path": dir,
-	})
+	}
+	if filename != "-" {
+		req["file-name"] = filepath.Base(filename)
+		req["file-path"] = filepath.Dir(filename)
+	}
+	c.send(req)
 	return ch
 }
 
