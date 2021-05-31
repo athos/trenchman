@@ -21,12 +21,12 @@ const (
 )
 
 var args struct {
-	Host        string `name:"host" short:"H" help:"host" default:"127.0.0.1"`
-	Port        int    `name:"port" short:"p" help:"port"`
-	Eval        string `name:"eval" short:"e" help:"eval"`
-	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" help:"color"`
-	Version     bool   `name:"version" short:"v" help:"Show version"`
-	Filename    string `arg:"true" optional:"true"`
+	Host        string `name:"host" help:"Connect to the specified host." default:"127.0.0.1"`
+	Port        int    `name:"port" short:"p" placeholder:"<port>" help:"Connect to the specified port."`
+	Eval        string `name:"eval" short:"e" group:"Evaluation" placeholder:"<expr>" help:"Evaluate an expression."`
+	File        string `name:"file" short:"f" group:"Evaluation" placeholder:"<path>" help:"Evaluate a file."`
+	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
+	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
 }
 
 func detectNreplPort(portFile string) (int, error) {
@@ -88,7 +88,7 @@ func main() {
 		}
 		port = p
 	}
-	filename := strings.TrimSpace(args.Filename)
+	filename := strings.TrimSpace(args.File)
 	code := strings.TrimSpace(args.Eval)
 	opts := &repl.Opts{
 		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
