@@ -25,6 +25,7 @@ var args struct {
 	Port        int    `name:"port" short:"p" placeholder:"<port>" help:"Connect to the specified port."`
 	Eval        string `name:"eval" short:"e" group:"Evaluation" placeholder:"<expr>" help:"Evaluate an expression."`
 	File        string `name:"file" short:"f" group:"Evaluation" placeholder:"<path>" help:"Evaluate a file."`
+	MainNS      string `name:"main" short:"m" group:"Evaluation" placeholder:"<ns>" help:"Call the -main function for a namespace."`
 	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
 	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
 }
@@ -89,16 +90,21 @@ func main() {
 		port = p
 	}
 	filename := strings.TrimSpace(args.File)
+	mainNS := strings.TrimSpace(args.MainNS)
 	code := strings.TrimSpace(args.Eval)
 	opts := &repl.Opts{
 		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
-		HidesNil: filename != "" || code != "",
+		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
 	repl := setupRepl(args.Host, port, opts)
 	defer repl.Close()
 
 	if filename != "" {
 		repl.Load(filename)
+		return
+	}
+	if mainNS != "" {
+		repl.Eval(fmt.Sprintf("(do (require '%s) (%s/-main))", mainNS, mainNS))
 		return
 	}
 	if code != "" {
