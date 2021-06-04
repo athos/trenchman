@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/athos/trenchman/trenchman/bencode"
+	"github.com/athos/trenchman/trenchman/client"
 )
 
 type (
@@ -50,11 +51,11 @@ func Connect(opts *ConnOpts) (conn *Conn, err error) {
 	}, nil
 }
 
-func (conn *Conn) sendReq(req Request) error {
-	return conn.encoder.Encode(map[string]bencode.Datum(req))
+func (conn *Conn) Send(req client.Request) error {
+	return conn.encoder.Encode(map[string]bencode.Datum(req.(Request)))
 }
 
-func (conn *Conn) recvResp() (resp Response, err error) {
+func (conn *Conn) Recv() (resp client.Response, err error) {
 	datum, err := conn.decoder.Decode()
 	if err != nil {
 		return
@@ -71,25 +72,27 @@ func (conn *Conn) initSession() (ret *SessionInfo, err error) {
 		"op": "clone",
 		"id": "init",
 	}
-	if err = conn.sendReq(req); err != nil {
+	if err = conn.Send(req); err != nil {
 		return
 	}
-	resp, err := conn.recvResp()
+	response, err := conn.Recv()
 	if err != nil {
 		return
 	}
+	resp := response.(Response)
 	session, ok := resp["new-session"].(string)
 	if !ok {
 		err = fmt.Errorf("illegal session id: %v", resp["new-session"])
 		return
 	}
-	if err = conn.sendReq(Request{"op": "describe"}); err != nil {
+	if err = conn.Send(Request{"op": "describe"}); err != nil {
 		return
 	}
-	resp, err = conn.recvResp()
+	response, err = conn.Recv()
 	if err != nil {
 		return
 	}
+	resp = response.(Response)
 	ops := map[string]struct{}{}
 	for k, _ := range resp["ops"].(map[string]bencode.Datum) {
 		ops[k] = struct{}{}
@@ -101,30 +104,12 @@ func (conn *Conn) initSession() (ret *SessionInfo, err error) {
 	return
 }
 
-func (conn *Conn) startLoop(done chan struct{}) {
-	handler := conn.handler
-	if handler == nil {
-		handler = func(_ Response) {}
-	}
-	errHandler := conn.errHandler
-	if errHandler == nil {
-		errHandler = func(_ error) {}
-	}
-	for {
-		resp, err := conn.recvResp()
-		if err != nil {
-			select {
-			case <-done:
-				return
-			default:
-				if err != nil {
-					errHandler(err)
-					return
-				}
-			}
-		}
-		handler(resp)
-	}
+func (conn *Conn) HandleResp(resp client.Response) {
+	conn.handler(resp.(Response))
+}
+
+func (conn *Conn) HandleErr(err error) {
+	conn.errHandler(err)
 }
 
 func (conn *Conn) Close() error {

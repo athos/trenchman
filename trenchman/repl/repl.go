@@ -9,12 +9,13 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/athos/trenchman/trenchman/client"
 	"github.com/athos/trenchman/trenchman/nrepl"
 	"github.com/fatih/color"
 )
 
 type Repl struct {
-	client   *nrepl.Client
+	client   client.Client
 	in       *interruptibleReader
 	out      io.Writer
 	err      io.Writer
@@ -32,7 +33,7 @@ type Opts struct {
 	HidesNil bool
 }
 
-func NewRepl(opts *Opts, factory func(nrepl.IOHandler) *nrepl.Client) *Repl {
+func NewRepl(opts *Opts, factory func(nrepl.IOHandler) client.Client) *Repl {
 	ch := make(chan struct{}, 1)
 	repl := &Repl{
 		in:       newReader(ch, opts.In),
@@ -88,13 +89,13 @@ func (r *Repl) In() (string, bool) {
 	return line, true
 }
 
-func (r *Repl) handleResults(ch <-chan nrepl.EvalResult) {
+func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 	for res := range ch {
 		if s, ok := res.(string); ok {
 			if !r.hidesNil || s != "nil" {
 				r.printer.With(color.FgGreen).Fprintln(r.out, s)
 			}
-		} else if _, ok := res.(*nrepl.RuntimeError); !ok {
+		} else if _, ok := res.(*client.RuntimeError); !ok {
 			panic("unexpected result received")
 		}
 	}

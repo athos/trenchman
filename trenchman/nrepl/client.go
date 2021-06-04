@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/athos/trenchman/trenchman/bencode"
+	"github.com/athos/trenchman/trenchman/client"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +18,7 @@ type (
 		ns          string
 		ioHandler   IOHandler
 		done        chan struct{}
-		pending     map[string]chan EvalResult
+		pending     map[string]chan client.EvalResult
 	}
 
 	Opts struct {
@@ -32,48 +33,37 @@ type (
 		Out(s string)
 		Err(s string, fatal bool)
 	}
-
-	// EvalResult is either string or RuntimeError
-	EvalResult interface{}
-
-	RuntimeError struct {
-		err string
-	}
 )
 
-func (e *RuntimeError) Error() string {
-	return e.err
-}
-
 func NewClient(clientOpts *Opts) (*Client, error) {
-	client := &Client{
+	c := &Client{
 		ns:        "user",
 		ioHandler: clientOpts.IOHandler,
 		done:      make(chan struct{}),
-		pending:   map[string]chan EvalResult{},
+		pending:   map[string]chan client.EvalResult{},
 	}
 	opts := &ConnOpts{
 		Host:    clientOpts.Host,
 		Port:    clientOpts.Port,
-		Handler: func(r Response) { client.handleResp(r) },
+		Handler: func(r Response) { c.handleResp(r) },
 		ErrHandler: func(err error) {
-			client.ioHandler.Err(err.Error(), true)
+			c.ioHandler.Err(err.Error(), true)
 		},
 	}
 	conn, err := Connect(opts)
 	if err != nil {
 		return nil, err
 	}
-	client.conn = conn
+	c.conn = conn
 	if !clientOpts.Oneshot {
 		sessionInfo, err := conn.initSession()
 		if err != nil {
 			return nil, err
 		}
-		client.sessionInfo = sessionInfo
+		c.sessionInfo = sessionInfo
 	}
-	go conn.startLoop(client.done)
-	return client, nil
+	go client.StartLoop(c.conn, c.done)
+	return c, nil
 }
 
 func (c *Client) Close() error {
@@ -132,7 +122,7 @@ func (c *Client) handleResp(resp Response) {
 		c.lock.RLock()
 		ch := c.pending[id]
 		c.lock.RUnlock()
-		ch <- &RuntimeError{resp["ex"].(string)}
+		ch <- client.NewRuntimeError(resp["ex"].(string))
 	case has(resp, "out"):
 		c.ioHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
@@ -170,21 +160,21 @@ func (c *Client) send(req Request) {
 	if c.sessionInfo != nil {
 		req["session"] = c.sessionInfo.session
 	}
-	if err := c.conn.sendReq(req); err != nil {
+	if err := c.conn.Send(req); err != nil {
 		c.ioHandler.Err(err.Error(), true)
 	}
 }
 
-func (c *Client) newIdChan() (string, chan EvalResult) {
+func (c *Client) newIdChan() (string, chan client.EvalResult) {
 	id := uuid.NewString()
-	ch := make(chan EvalResult)
+	ch := make(chan client.EvalResult)
 	c.lock.Lock()
 	c.pending[id] = ch
 	c.lock.Unlock()
 	return id, ch
 }
 
-func (c *Client) Eval(code string) <-chan EvalResult {
+func (c *Client) Eval(code string) <-chan client.EvalResult {
 	id, ch := c.newIdChan()
 	c.send(Request{
 		"op":   "eval",
@@ -195,13 +185,13 @@ func (c *Client) Eval(code string) <-chan EvalResult {
 	return ch
 }
 
-func (c *Client) Load(filename string, content string) <-chan EvalResult {
+func (c *Client) Load(filename string, content string) <-chan client.EvalResult {
 	id, ch := c.newIdChan()
 	req := Request{
-		"op":        "load-file",
-		"id":        id,
-		"ns":        c.CurrentNS(),
-		"file":      content,
+		"op":   "load-file",
+		"id":   id,
+		"ns":   c.CurrentNS(),
+		"file": content,
 	}
 	if filename != "-" {
 		req["file-name"] = filepath.Base(filename)

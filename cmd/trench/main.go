@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/athos/trenchman/trenchman/client"
 	"github.com/athos/trenchman/trenchman/nrepl"
 	"github.com/athos/trenchman/trenchman/repl"
 	"github.com/mattn/go-isatty"
@@ -61,8 +62,8 @@ func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
 	opts.In = os.Stdin
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
-	return repl.NewRepl(opts, func(ioHandler nrepl.IOHandler) *nrepl.Client {
-		client, err := nrepl.NewClient(&nrepl.Opts{
+	return repl.NewRepl(opts, func(ioHandler nrepl.IOHandler) client.Client {
+		c, err := nrepl.NewClient(&nrepl.Opts{
 			Host:      host,
 			Port:      port,
 			IOHandler: ioHandler,
@@ -70,7 +71,7 @@ func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
 		if err != nil {
 			panic(err)
 		}
-		return client
+		return c
 	})
 }
 
