@@ -80,17 +80,7 @@ func (c *Client) HandleResp(response client.Response) {
 	// fmt.Printf("resp: %v\n", resp)
 	switch resp.Tag.String() {
 	case ":ret":
-		c.lock.Lock()
-		ch := c.returnCh
-		c.returnCh = nil
-		c.ns = resp.Ns
-		c.lock.Unlock()
-		if resp.Exception {
-			ch <- client.NewRuntimeError(resp.Val)
-		} else {
-			ch <- resp.Val
-		}
-		close(ch)
+		c.handleResult(resp)
 	case ":out":
 		c.ioHandler.Out(resp.Val)
 	case ":err":
@@ -99,6 +89,23 @@ func (c *Client) HandleResp(response client.Response) {
 	default:
 		panic(fmt.Errorf("unknown response: %v", resp.Tag))
 	}
+}
+
+func (c *Client) handleResult(resp *Response) {
+	c.lock.Lock()
+	ch := c.returnCh
+	c.returnCh = nil
+	c.ns = resp.Ns
+	c.lock.Unlock()
+	if resp.Exception {
+		var ex map[edn.Keyword]interface{}
+		edn.UnmarshalString(resp.Val, &ex)
+		c.ioHandler.Err(ex[edn.Keyword("cause")].(string) + "\n", false)
+		ch <- client.NewRuntimeError(resp.Val)
+	} else {
+		ch <- resp.Val
+	}
+	close(ch)
 }
 
 func (c *Client) HandleErr(err error) {
