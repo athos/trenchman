@@ -62,7 +62,7 @@ func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
 	opts.In = os.Stdin
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
-	return repl.NewRepl(opts, func(ioHandler nrepl.IOHandler) client.Client {
+	return repl.NewRepl(opts, func(ioHandler client.IOHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
 			Host:      host,
 			Port:      port,

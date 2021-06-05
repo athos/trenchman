@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 
 	"github.com/athos/trenchman/trenchman/client"
-	"github.com/athos/trenchman/trenchman/nrepl"
 	"github.com/fatih/color"
 )
 
@@ -33,7 +32,7 @@ type Opts struct {
 	HidesNil bool
 }
 
-func NewRepl(opts *Opts, factory func(nrepl.IOHandler) client.Client) *Repl {
+func NewRepl(opts *Opts, factory func(client.IOHandler) client.Client) *Repl {
 	ch := make(chan struct{}, 1)
 	repl := &Repl{
 		in:       newReader(ch, opts.In),

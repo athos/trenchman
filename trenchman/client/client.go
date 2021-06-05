@@ -31,6 +31,12 @@ type (
 		Load(filename string, content string) <-chan EvalResult
 		Interrupt()
 	}
+
+	IOHandler interface {
+		In() (ret string, ok bool)
+		Out(s string)
+		Err(s string, fatal bool)
+	}
 )
 
 func NewRuntimeError(err string) *RuntimeError {

@@ -16,7 +16,7 @@ type (
 		lock        sync.RWMutex
 		sessionInfo *SessionInfo
 		ns          string
-		ioHandler   IOHandler
+		ioHandler   client.IOHandler
 		done        chan struct{}
 		pending     map[string]chan client.EvalResult
 	}
@@ -25,14 +25,9 @@ type (
 		Host      string
 		Port      int
 		Oneshot   bool
-		IOHandler IOHandler
+		IOHandler client.IOHandler
 	}
 
-	IOHandler interface {
-		In() (ret string, ok bool)
-		Out(s string)
-		Err(s string, fatal bool)
-	}
 )
 
 func NewClient(clientOpts *Opts) (*Client, error) {
