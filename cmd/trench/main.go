@@ -9,6 +9,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/athos/trenchman/trenchman/client"
 	"github.com/athos/trenchman/trenchman/nrepl"
+	"github.com/athos/trenchman/trenchman/prepl"
 	"github.com/athos/trenchman/trenchman/repl"
 	"github.com/mattn/go-isatty"
 )
@@ -28,6 +29,7 @@ var args struct {
 	File        string `name:"file" short:"f" group:"Evaluation" placeholder:"<path>" help:"Evaluate a file."`
 	MainNS      string `name:"main" short:"m" group:"Evaluation" placeholder:"<ns>" help:"Call the -main function for a namespace."`
 	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
+	Protocol string `name:"protocol" short:"P" enum:"nrepl,prepl" default:"nrepl" help:"Use specified protocol. Possible values: nrepl, prepl. Defaults to nrepl."`
 	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
 }
 
@@ -58,11 +60,8 @@ func colorized(colorOption string) bool {
 	return false
 }
 
-func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
-	opts.In = os.Stdin
-	opts.Out = os.Stdout
-	opts.Err = os.Stderr
-	return repl.NewRepl(opts, func(ioHandler client.IOHandler) client.Client {
+func nReplFactory(host string, port int) func(client.IOHandler) client.Client {
+	return func(ioHandler client.IOHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
 			Host:      host,
 			Port:      port,
@@ -72,7 +71,35 @@ func setupRepl(host string, port int, opts *repl.Opts) *repl.Repl {
 			panic(err)
 		}
 		return c
-	})
+	}
+}
+
+func pReplFactory(host string, port int) func(client.IOHandler) client.Client {
+	return func(ioHandler client.IOHandler) client.Client {
+		c, err := prepl.NewClient(&prepl.Opts{
+			Host:      host,
+			Port:      port,
+			IOHandler: ioHandler,
+		})
+		if err != nil {
+			panic(err)
+		}
+		return c
+	}
+}
+
+func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Repl {
+	opts.In = os.Stdin
+	opts.Out = os.Stdout
+	opts.Err = os.Stderr
+	var factory func(client.IOHandler) client.Client
+	switch protocol {
+	case "nrepl":
+		factory = nReplFactory(host, port)
+	case "prepl":
+		factory = pReplFactory(host, port)
+	}
+	return repl.NewRepl(opts, factory)
 }
 
 func main() {
@@ -83,7 +110,7 @@ func main() {
 	}
 
 	port := args.Port
-	if port == 0 {
+	if args.Protocol == "nrepl" && port == 0 {
 		p, err := detectNreplPort(".nrepl-port")
 		if err != nil {
 			panic(fmt.Errorf("cannot read .nrepl-port (%w)", err))
@@ -97,7 +124,7 @@ func main() {
 		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl := setupRepl(args.Host, port, opts)
+	repl := setupRepl(args.Protocol, args.Host, port, opts)
 	defer repl.Close()
 
 	if filename != "" {
