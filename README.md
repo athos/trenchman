@@ -1,6 +1,6 @@
 # Trenchman
 
-Trenchman is a standalone nREPL client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman).
+Trenchman is a standalone nREPL/pREPL client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman).
 
 ## Installation
 
