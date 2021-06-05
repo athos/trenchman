@@ -3,19 +3,22 @@ package client
 import "io"
 
 type (
-	Request interface{}
+	Request  interface{}
 	Response interface{}
 
 	Conn interface {
 		io.Closer
 		Send(req Request) error
 		Recv() (Response, error)
+	}
+
+	Handler interface {
 		HandleResp(resp Response)
 		HandleErr(error)
 	}
 
 	// EvalResult is either string or RuntimeError
-	EvalResult interface{}
+	EvalResult   interface{}
 	RuntimeError struct {
 		err string
 	}
@@ -38,7 +41,7 @@ func (e *RuntimeError) Error() string {
 	return e.err
 }
 
-func StartLoop(conn Conn, done chan struct{}) {
+func StartLoop(conn Conn, handler Handler, done chan struct{}) {
 	for {
 		resp, err := conn.Recv()
 		if err != nil {
@@ -47,11 +50,11 @@ func StartLoop(conn Conn, done chan struct{}) {
 				return
 			default:
 				if err != nil {
-					conn.HandleErr(err)
+					handler.HandleErr(err)
 					return
 				}
 			}
 		}
-		conn.HandleResp(resp)
+		handler.HandleResp(resp)
 	}
 }

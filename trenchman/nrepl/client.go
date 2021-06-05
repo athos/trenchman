@@ -43,12 +43,8 @@ func NewClient(clientOpts *Opts) (*Client, error) {
 		pending:   map[string]chan client.EvalResult{},
 	}
 	opts := &ConnOpts{
-		Host:    clientOpts.Host,
-		Port:    clientOpts.Port,
-		Handler: func(r Response) { c.handleResp(r) },
-		ErrHandler: func(err error) {
-			c.ioHandler.Err(err.Error(), true)
-		},
+		Host: clientOpts.Host,
+		Port: clientOpts.Port,
 	}
 	conn, err := Connect(opts)
 	if err != nil {
@@ -62,7 +58,7 @@ func NewClient(clientOpts *Opts) (*Client, error) {
 		}
 		c.sessionInfo = sessionInfo
 	}
-	go client.StartLoop(c.conn, c.done)
+	go client.StartLoop(c.conn, c, c.done)
 	return c, nil
 }
 
@@ -105,8 +101,9 @@ func (c *Client) statusContains(datum bencode.Datum, status string) bool {
 	return false
 }
 
-func (c *Client) handleResp(resp Response) {
+func (c *Client) HandleResp(response client.Response) {
 	//fmt.Printf("RESP: %v\n", resp)
+	resp := response.(Response)
 	switch {
 	case has(resp, "value"):
 		id := resp["id"].(string)
@@ -133,6 +130,10 @@ func (c *Client) handleResp(resp Response) {
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
 		c.ioHandler.Err(msg, true)
 	}
+}
+
+func (c *Client) HandleErr(err error) {
+	c.ioHandler.Err(err.Error(), true)
 }
 
 func (c *Client) handleStatusUpdate(resp Response) {

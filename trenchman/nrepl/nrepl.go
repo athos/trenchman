@@ -17,18 +17,14 @@ type (
 	ErrHandler func(error)
 
 	Conn struct {
-		socket     net.Conn
-		encoder    *bencode.Encoder
-		decoder    *bencode.Decoder
-		handler    Handler
-		errHandler ErrHandler
+		socket  net.Conn
+		encoder *bencode.Encoder
+		decoder *bencode.Decoder
 	}
 
 	ConnOpts struct {
-		Host       string
-		Port       int
-		Handler    Handler
-		ErrHandler ErrHandler
+		Host string
+		Port int
 	}
 
 	SessionInfo struct {
@@ -43,11 +39,9 @@ func Connect(opts *ConnOpts) (conn *Conn, err error) {
 		return
 	}
 	return &Conn{
-		socket:     socket,
-		encoder:    bencode.NewEncoder(socket),
-		decoder:    bencode.NewDecoder(socket),
-		handler:    opts.Handler,
-		errHandler: opts.ErrHandler,
+		socket:  socket,
+		encoder: bencode.NewEncoder(socket),
+		decoder: bencode.NewDecoder(socket),
 	}, nil
 }
 
@@ -102,14 +96,6 @@ func (conn *Conn) initSession() (ret *SessionInfo, err error) {
 		ops:     ops,
 	}
 	return
-}
-
-func (conn *Conn) HandleResp(resp client.Response) {
-	conn.handler(resp.(Response))
-}
-
-func (conn *Conn) HandleErr(err error) {
-	conn.errHandler(err)
 }
 
 func (conn *Conn) Close() error {
