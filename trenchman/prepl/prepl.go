@@ -98,9 +98,7 @@ func (c *Client) handleResult(resp *Response) {
 	c.ns = resp.Ns
 	c.lock.Unlock()
 	if resp.Exception {
-		var ex map[edn.Keyword]interface{}
-		edn.UnmarshalString(resp.Val, &ex)
-		c.ioHandler.Err(ex[edn.Keyword("cause")].(string) + "\n", false)
+		c.ioHandler.Err(errorMessage(resp.Val) + "\n", false)
 		ch <- client.NewRuntimeError(resp.Val)
 	} else {
 		ch <- resp.Val
