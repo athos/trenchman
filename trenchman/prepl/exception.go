@@ -9,19 +9,19 @@ import (
 )
 
 type (
-	exception struct {
+	Exception struct {
 		Phase edn.Keyword
 		Trace [][]interface{} // source, method, file, line
-		Via   []viaEntry
+		Via   []ViaEntry
 	}
 
-	viaEntry struct {
+	ViaEntry struct {
 		Type    edn.Symbol
 		Message string
 		Data    map[edn.Keyword]interface{}
 	}
 
-	triageData struct {
+	TriageData struct {
 		phase  string
 		source string
 		path   string
@@ -33,12 +33,12 @@ type (
 	}
 )
 
-func exTriage(ex *exception) *triageData {
+func exTriage(ex *Exception) *TriageData {
 	phase := ex.Phase.String()[1:]
 	if phase == "" {
 		phase = "execution"
 	}
-	td := triageData{phase: phase}
+	td := TriageData{phase: phase}
 	via := ex.Via
 	var typ, msg string
 	var topData map[edn.Keyword]interface{}
@@ -112,7 +112,7 @@ func exTriage(ex *exception) *triageData {
 	return &td
 }
 
-func mergeToTriageData(td triageData, data map[edn.Keyword]interface{}) {
+func mergeToTriageData(td TriageData, data map[edn.Keyword]interface{}) {
 	if data == nil {
 		return
 	}
@@ -159,7 +159,7 @@ func isCoreClass(className string) bool {
 	return strings.HasPrefix(className, "clojure.")
 }
 
-func exString(td *triageData) string {
+func exString(td *TriageData) string {
 	source := "REPL"
 	if td.path != "" {
 		source = td.path
@@ -251,7 +251,9 @@ func exString(td *triageData) string {
 }
 
 func errorMessage(payload string) string {
-	var ex exception
-	edn.UnmarshalString(payload, &ex)
+	var ex Exception
+	if err := edn.UnmarshalString(payload, &ex); err != nil {
+		panic("failed to parse exception data: " + err.Error())
+	}
 	return exString(exTriage(&ex))
 }
