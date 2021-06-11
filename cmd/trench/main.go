@@ -29,7 +29,7 @@ var args struct {
 	File        string `name:"file" short:"f" group:"Evaluation" placeholder:"<path>" help:"Evaluate a file."`
 	MainNS      string `name:"main" short:"m" group:"Evaluation" placeholder:"<ns>" help:"Call the -main function for a namespace."`
 	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
-	Protocol string `name:"protocol" short:"P" enum:"nrepl,prepl" default:"nrepl" help:"Use specified protocol. Possible values: nrepl, prepl. Defaults to nrepl."`
+	Protocol    string `name:"protocol" short:"P" enum:"n,nrepl,p,prepl" default:"nrepl" help:"Use specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl."`
 	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
 }
 
@@ -94,9 +94,9 @@ func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Re
 	opts.Err = os.Stderr
 	var factory func(client.IOHandler) client.Client
 	switch protocol {
-	case "nrepl":
+	case "n", "nrepl":
 		factory = nReplFactory(host, port)
-	case "prepl":
+	case "p", "prepl":
 		factory = pReplFactory(host, port)
 	}
 	return repl.NewRepl(opts, factory)
