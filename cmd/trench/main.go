@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -30,8 +31,11 @@ var args struct {
 	MainNS      string `name:"main" short:"m" group:"Evaluation" placeholder:"<ns>" help:"Call the -main function for a namespace."`
 	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
 	Protocol    string `name:"protocol" short:"P" enum:"n,nrepl,p,prepl" default:"nrepl" help:"Use specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl."`
+	Location    string `short:"L" help:"Connect to the specified URL (e.g. prepl://127.0.0.1:5555)"`
 	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
 }
+
+var urlRegex = regexp.MustCompile(`(nrepl|prepl)://([^:]*):(\d+)`)
 
 func detectNreplPort(portFile string) (int, error) {
 	content, err := os.ReadFile(portFile)
@@ -109,8 +113,28 @@ func main() {
 		os.Exit(0)
 	}
 
-	port := args.Port
-	if args.Protocol == "nrepl" && port == 0 {
+	var protocol, host string
+	var port int
+	loc := args.Location
+	if loc != "" {
+		match := urlRegex.FindStringSubmatch(loc)
+		if match == nil {
+			panic("bad url specified to -L option: " + loc)
+		}
+		protocol = match[1]
+		host = match[2]
+		port, _ = strconv.Atoi(match[3])
+	}
+	if protocol == "" && args.Protocol != "" {
+		protocol = args.Protocol
+	}
+	if host == "" && args.Host != "" {
+		host = args.Host
+	}
+	if port == 0 && args.Port != 0 {
+		port = args.Port
+	}
+	if protocol == "nrepl" && port == 0 {
 		p, err := detectNreplPort(".nrepl-port")
 		if err != nil {
 			panic(fmt.Errorf("cannot read .nrepl-port (%w)", err))
@@ -124,7 +148,7 @@ func main() {
 		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl := setupRepl(args.Protocol, args.Host, port, opts)
+	repl := setupRepl(protocol, host, port, opts)
 	defer repl.Close()
 
 	if filename != "" {
