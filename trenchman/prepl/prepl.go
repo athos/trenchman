@@ -51,6 +51,12 @@ func NewClient(opts *Opts) (*Client, error) {
 		ns:        "user",
 		done:      make(chan struct{}),
 	}
+	if err := c.Send("(set! *print-namespace-maps* false)"); err != nil {
+		return nil, err
+	}
+	if _, err := c.Recv(); err != nil {
+		return nil, err
+	}
 	go client.StartLoop(c, c, c.done)
 	return c, nil
 }
