@@ -40,6 +40,10 @@ func newReader(r io.Reader) *interruptibleReader {
 
 func (r *interruptibleReader) readLine() <-chan interface{} {
 	go func() {
+		//FIXME: added to ignore occasional panic that says "send on closed channel"
+		defer func() {
+			recover()
+		}()
 		select {
 		case _, ok := <-r.cancelCh:
 			if ok {
@@ -60,7 +64,6 @@ func (r *interruptibleReader) readLine() <-chan interface{} {
 }
 
 func (r *interruptibleReader) Close() error {
-	close(r.cancelCh)
 	close(r.notifyCh)
 	return nil
 }
