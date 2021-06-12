@@ -22,19 +22,14 @@ type (
 		decoder *bencode.Decoder
 	}
 
-	ConnOpts struct {
-		Host string
-		Port int
-	}
-
 	SessionInfo struct {
 		session string
 		ops     map[string]struct{}
 	}
 )
 
-func Connect(opts *ConnOpts) (conn *Conn, err error) {
-	socket, err := net.Dial("tcp", fmt.Sprintf("%s:%d", opts.Host, opts.Port))
+func Connect(host string, port int) (conn *Conn, err error) {
+	socket, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return
 	}

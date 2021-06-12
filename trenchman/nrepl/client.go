@@ -39,11 +39,7 @@ func NewClient(clientOpts *Opts) (*Client, error) {
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
 	}
-	opts := &ConnOpts{
-		Host: clientOpts.Host,
-		Port: clientOpts.Port,
-	}
-	conn, err := Connect(opts)
+	conn, err := Connect(clientOpts.Host, clientOpts.Port)
 	if err != nil {
 		return nil, err
 	}
