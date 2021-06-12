@@ -85,8 +85,12 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 		case res := <-r.in.readLine():
 			if s, ok := res.(string); ok {
 				r.client.Stdin(s)
-			} else if err := res.(error); err != errInterrupted {
-				panic(err)
+			} else {
+				switch err := res.(error); err {
+				case io.EOF, errInterrupted:
+				default:
+					panic(err)
+				}
 			}
 		}
 	}
