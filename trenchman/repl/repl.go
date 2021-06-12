@@ -19,7 +19,6 @@ type Repl struct {
 	out      io.Writer
 	err      io.Writer
 	printer  Printer
-	cancel   chan<- struct{}
 	reading  atomic.Value
 	hidesNil bool
 }
@@ -33,12 +32,10 @@ type Opts struct {
 }
 
 func NewRepl(opts *Opts, factory func(client.IOHandler) client.Client) *Repl {
-	ch := make(chan struct{}, 1)
 	repl := &Repl{
-		in:       newReader(ch, opts.In),
+		in:       newReader(opts.In),
 		out:      opts.Out,
 		err:      opts.Err,
-		cancel:   ch,
 		printer:  opts.Printer,
 		hidesNil: opts.HidesNil,
 	}
@@ -155,7 +152,7 @@ func (r *Repl) StartWatchingInterruption() {
 			<-interrupt
 			r.client.Interrupt()
 			if r.reading.Load().(bool) {
-				r.cancel <- struct{}{}
+				r.in.interrupt()
 			}
 		}
 	}()

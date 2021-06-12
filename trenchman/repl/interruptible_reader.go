@@ -18,10 +18,10 @@ type (
 
 var errInterrupted = errors.New("read interrupted")
 
-func newReader(cancelCh chan struct{}, r io.Reader) *interruptibleReader {
+func newReader(r io.Reader) *interruptibleReader {
 	reader := &interruptibleReader{
 		reader:   bufio.NewReader(r),
-		cancelCh: cancelCh,
+		cancelCh: make(chan struct{}, 1),
 		notifyCh: make(chan struct{}),
 		resultCh: make(chan interface{}),
 		returnCh: make(chan interface{}),
@@ -63,4 +63,8 @@ func (r *interruptibleReader) Close() error {
 	close(r.cancelCh)
 	close(r.notifyCh)
 	return nil
+}
+
+func (r *interruptibleReader) interrupt() {
+	r.cancelCh <- struct{}{}
 }
