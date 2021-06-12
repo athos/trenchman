@@ -124,7 +124,12 @@ func (c *Client) CurrentNS() string {
 }
 
 func (c *Client) SupportsOp(op string) bool {
-	return op != "load-file" && op != "interrupt"
+	switch op {
+	case "eval", "load-file":
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *Client) Eval(code string) <-chan client.EvalResult {
@@ -139,7 +144,7 @@ func (c *Client) Eval(code string) <-chan client.EvalResult {
 }
 
 func (c *Client) Load(filename string, content string) <-chan client.EvalResult {
-	panic("load not supported")
+	return c.Eval(fmt.Sprintf("(do %s)", content))
 }
 
 func (c *Client) Stdin(input string) {
