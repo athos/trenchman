@@ -21,20 +21,20 @@ type (
 	}
 
 	Client struct {
-		socket    net.Conn
-		decoder   *edn.Decoder
-		writer    *bufio.Writer
-		ioHandler client.IOHandler
-		lock      sync.RWMutex
-		ns        string
-		returnCh  chan client.EvalResult
-		done      chan struct{}
+		socket        net.Conn
+		decoder       *edn.Decoder
+		writer        *bufio.Writer
+		outputHandler client.OutputHandler
+		lock          sync.RWMutex
+		ns            string
+		returnCh      chan client.EvalResult
+		done          chan struct{}
 	}
 
 	Opts struct {
-		Host      string
-		Port      int
-		IOHandler client.IOHandler
+		Host          string
+		Port          int
+		OutputHandler client.OutputHandler
 	}
 )
 
@@ -44,12 +44,12 @@ func NewClient(opts *Opts) (*Client, error) {
 		return nil, err
 	}
 	c := &Client{
-		socket:    socket,
-		decoder:   edn.NewDecoder(socket),
-		writer:    bufio.NewWriter(socket),
-		ioHandler: opts.IOHandler,
-		ns:        "user",
-		done:      make(chan struct{}),
+		socket:        socket,
+		decoder:       edn.NewDecoder(socket),
+		writer:        bufio.NewWriter(socket),
+		outputHandler: opts.OutputHandler,
+		ns:            "user",
+		done:          make(chan struct{}),
 	}
 	if err := c.Send("(set! *print-namespace-maps* false)"); err != nil {
 		return nil, err
@@ -88,9 +88,9 @@ func (c *Client) HandleResp(response client.Response) {
 	case ":ret":
 		c.handleResult(resp)
 	case ":out":
-		c.ioHandler.Out(resp.Val)
+		c.outputHandler.Out(resp.Val)
 	case ":err":
-		c.ioHandler.Err(resp.Val, false)
+		c.outputHandler.Err(resp.Val, false)
 	case ":tap":
 	default:
 		panic(fmt.Errorf("unknown response: %v", resp.Tag))
@@ -104,7 +104,7 @@ func (c *Client) handleResult(resp *Response) {
 	c.ns = resp.Ns
 	c.lock.Unlock()
 	if resp.Exception {
-		c.ioHandler.Err(errorMessage(resp.Val) + "\n", false)
+		c.outputHandler.Err(errorMessage(resp.Val)+"\n", false)
 		ch <- client.NewRuntimeError(resp.Val)
 	} else {
 		ch <- resp.Val
@@ -113,7 +113,7 @@ func (c *Client) handleResult(resp *Response) {
 }
 
 func (c *Client) HandleErr(err error) {
-	c.ioHandler.Err(err.Error(), true)
+	c.outputHandler.Err(err.Error(), true)
 }
 
 func (c *Client) CurrentNS() string {
@@ -133,7 +133,7 @@ func (c *Client) Eval(code string) <-chan client.EvalResult {
 	c.returnCh = ch
 	c.lock.Unlock()
 	if err := c.Send(code + "\n"); err != nil {
-		c.ioHandler.Err(err.Error(), true)
+		c.outputHandler.Err(err.Error(), true)
 	}
 	return ch
 }

@@ -33,8 +33,7 @@ type (
 		Interrupt()
 	}
 
-	IOHandler interface {
-		In() (ret string, ok bool)
+	OutputHandler interface {
 		Out(s string)
 		Err(s string, fatal bool)
 	}

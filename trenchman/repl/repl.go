@@ -31,7 +31,7 @@ type Opts struct {
 	HidesNil bool
 }
 
-func NewRepl(opts *Opts, factory func(client.IOHandler) client.Client) *Repl {
+func NewRepl(opts *Opts, factory func(client.OutputHandler) client.Client) *Repl {
 	repl := &Repl{
 		in:       newReader(opts.In),
 		out:      opts.Out,
@@ -65,10 +65,6 @@ func (r *Repl) Err(s string, fatal bool) {
 		panic(s)
 	}
 	r.printer.With(color.FgRed).Fprint(r.err, s)
-}
-
-func (r *Repl) In() (string, bool) {
-	return "", false
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {

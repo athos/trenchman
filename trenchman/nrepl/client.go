@@ -15,7 +15,7 @@ type (
 	Client struct {
 		conn           *Conn
 		sessionInfo    *SessionInfo
-		ioHandler      client.IOHandler
+		outputHandler  client.OutputHandler
 		done           chan struct{}
 		lock           sync.RWMutex
 		ns             string
@@ -25,19 +25,19 @@ type (
 	}
 
 	Opts struct {
-		Host      string
-		Port      int
-		Oneshot   bool
-		IOHandler client.IOHandler
+		Host          string
+		Port          int
+		Oneshot       bool
+		OutputHandler client.OutputHandler
 	}
 )
 
 func NewClient(clientOpts *Opts) (*Client, error) {
 	c := &Client{
-		ns:        "user",
-		ioHandler: clientOpts.IOHandler,
-		done:      make(chan struct{}),
-		pending:   map[string]chan client.EvalResult{},
+		outputHandler: clientOpts.OutputHandler,
+		ns:            "user",
+		done:          make(chan struct{}),
+		pending:       map[string]chan client.EvalResult{},
 	}
 	opts := &ConnOpts{
 		Host: clientOpts.Host,
@@ -88,7 +88,7 @@ func (c *Client) statusContains(datum bencode.Datum, status string) bool {
 	statuses, ok := datum.([]bencode.Datum)
 	if !ok {
 		msg := fmt.Sprintf("Unknown status returned: %v", statuses)
-		c.ioHandler.Err(msg, true)
+		c.outputHandler.Err(msg, true)
 	}
 	for _, s := range statuses {
 		if s == status {
@@ -118,19 +118,19 @@ func (c *Client) HandleResp(response client.Response) {
 		c.lock.RUnlock()
 		ch <- client.NewRuntimeError(resp["ex"].(string))
 	case has(resp, "out"):
-		c.ioHandler.Out(resp["out"].(string))
+		c.outputHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
-		c.ioHandler.Err(resp["err"].(string), false)
+		c.outputHandler.Err(resp["err"].(string), false)
 	case has(resp, "status"):
 		c.handleStatusUpdate(resp)
 	default:
 		msg := fmt.Sprintf("Unknown response returned: %v", resp)
-		c.ioHandler.Err(msg, true)
+		c.outputHandler.Err(msg, true)
 	}
 }
 
 func (c *Client) HandleErr(err error) {
-	c.ioHandler.Err(err.Error(), true)
+	c.outputHandler.Err(err.Error(), true)
 }
 
 func (c *Client) handleStatusUpdate(resp Response) {
@@ -163,7 +163,7 @@ func (c *Client) send(req Request) {
 		req["session"] = c.sessionInfo.session
 	}
 	if err := c.conn.Send(req); err != nil {
-		c.ioHandler.Err(err.Error(), true)
+		c.outputHandler.Err(err.Error(), true)
 	}
 }
 

@@ -64,12 +64,12 @@ func colorized(colorOption string) bool {
 	return false
 }
 
-func nReplFactory(host string, port int) func(client.IOHandler) client.Client {
-	return func(ioHandler client.IOHandler) client.Client {
+func nReplFactory(host string, port int) func(client.OutputHandler) client.Client {
+	return func(outputHandler client.OutputHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
-			Host:      host,
-			Port:      port,
-			IOHandler: ioHandler,
+			Host:          host,
+			Port:          port,
+			OutputHandler: outputHandler,
 		})
 		if err != nil {
 			panic(err)
@@ -78,12 +78,12 @@ func nReplFactory(host string, port int) func(client.IOHandler) client.Client {
 	}
 }
 
-func pReplFactory(host string, port int) func(client.IOHandler) client.Client {
-	return func(ioHandler client.IOHandler) client.Client {
+func pReplFactory(host string, port int) func(client.OutputHandler) client.Client {
+	return func(outputHandler client.OutputHandler) client.Client {
 		c, err := prepl.NewClient(&prepl.Opts{
 			Host:      host,
 			Port:      port,
-			IOHandler: ioHandler,
+			OutputHandler: outputHandler,
 		})
 		if err != nil {
 			panic(err)
@@ -96,7 +96,7 @@ func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Re
 	opts.In = os.Stdin
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
-	var factory func(client.IOHandler) client.Client
+	var factory func(client.OutputHandler) client.Client
 	switch protocol {
 	case "n", "nrepl":
 		factory = nReplFactory(host, port)
