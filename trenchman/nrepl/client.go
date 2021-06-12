@@ -3,6 +3,7 @@ package nrepl
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/athos/trenchman/trenchman/bencode"
@@ -12,13 +13,15 @@ import (
 
 type (
 	Client struct {
-		conn        *Conn
-		lock        sync.RWMutex
-		sessionInfo *SessionInfo
-		ns          string
-		ioHandler   client.IOHandler
-		done        chan struct{}
-		pending     map[string]chan client.EvalResult
+		conn           *Conn
+		sessionInfo    *SessionInfo
+		ioHandler      client.IOHandler
+		done           chan struct{}
+		lock           sync.RWMutex
+		ns             string
+		pending        map[string]chan client.EvalResult
+		inputRequested bool
+		inputBuffer    *strings.Builder
 	}
 
 	Opts struct {
@@ -27,7 +30,6 @@ type (
 		Oneshot   bool
 		IOHandler client.IOHandler
 	}
-
 )
 
 func NewClient(clientOpts *Opts) (*Client, error) {
@@ -134,11 +136,15 @@ func (c *Client) HandleErr(err error) {
 func (c *Client) handleStatusUpdate(resp Response) {
 	status := resp["status"]
 	if c.statusContains(status, "need-input") {
-		input, ok := c.ioHandler.In()
-		// If not ok, input request must have been cancelled by user
-		// So, then nothing to do more
-		if ok {
-			c.stdin(input)
+		c.lock.Lock()
+		if buf := c.inputBuffer; buf != nil {
+			in := buf.String()
+			c.inputBuffer = nil
+			c.lock.Unlock()
+			c.sendStdin(in)
+		} else {
+			c.inputRequested = true
+			c.lock.Unlock()
 		}
 	} else if c.statusContains(status, "done") {
 		if has(resp, "id") {
@@ -197,14 +203,28 @@ func (c *Client) Load(filename string, content string) <-chan client.EvalResult 
 	return ch
 }
 
-func (c *Client) stdin(in string) {
+func (c *Client) sendStdin(in string) {
 	c.send(Request{
 		"op":    "stdin",
 		"stdin": in,
 	})
 }
 
-func (c *Client) Stdin(_ string) {
+func (c *Client) Stdin(input string) {
+	c.lock.Lock()
+	if c.inputBuffer == nil {
+		c.inputBuffer = new(strings.Builder)
+	}
+	c.inputBuffer.WriteString(input)
+	if c.inputRequested {
+		in := c.inputBuffer.String()
+		c.inputBuffer = nil
+		c.inputRequested = false
+		c.lock.Unlock()
+		c.sendStdin(in)
+	} else {
+		c.lock.Unlock()
+	}
 }
 
 func (c *Client) Interrupt() {
