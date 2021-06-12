@@ -29,6 +29,7 @@ type (
 		SupportsOp(op string) bool
 		Eval(code string) <-chan EvalResult
 		Load(filename string, content string) <-chan EvalResult
+		Stdin(input string)
 		Interrupt()
 	}
 

@@ -204,6 +204,9 @@ func (c *Client) stdin(in string) {
 	})
 }
 
+func (c *Client) Stdin(_ string) {
+}
+
 func (c *Client) Interrupt() {
 	ids := []string{}
 	c.lock.RLock()

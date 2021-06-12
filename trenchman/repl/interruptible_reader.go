@@ -9,20 +9,22 @@ import (
 type (
 	interruptibleReader struct {
 		reader   *bufio.Reader
-		cancelCh <-chan struct{}
+		cancelCh chan struct{}
 		notifyCh chan struct{}
 		resultCh chan interface{}
+		returnCh chan interface{}
 	}
 )
 
 var errInterrupted = errors.New("read interrupted")
 
-func newReader(cancelCh <-chan struct{}, r io.Reader) *interruptibleReader {
+func newReader(cancelCh chan struct{}, r io.Reader) *interruptibleReader {
 	reader := &interruptibleReader{
 		reader:   bufio.NewReader(r),
 		cancelCh: cancelCh,
 		notifyCh: make(chan struct{}),
 		resultCh: make(chan interface{}),
+		returnCh: make(chan interface{}),
 	}
 	go func() {
 		for range reader.notifyCh {
@@ -36,31 +38,29 @@ func newReader(cancelCh <-chan struct{}, r io.Reader) *interruptibleReader {
 	return reader
 }
 
-func (r *interruptibleReader) readLine() (string, error) {
-	select {
-	case <-r.cancelCh:
-		return "", errInterrupted
-	case res := <-r.resultCh:
-		if s, ok := res.(string); !ok {
-			return "", res.(error)
-		} else {
-			return s, nil
-		}
-	case r.notifyCh <- struct{}{}:
+func (r *interruptibleReader) readLine() <-chan interface{} {
+	go func() {
 		select {
-		case <-r.cancelCh:
-			return "", errInterrupted
+		case _, ok := <-r.cancelCh:
+			if ok {
+				r.returnCh <- errInterrupted
+			}
 		case res := <-r.resultCh:
-			if s, ok := res.(string); !ok {
-				return "", res.(error)
-			} else {
-				return s, nil
+			r.returnCh <- res
+		case r.notifyCh <- struct{}{}:
+			select {
+			case <-r.cancelCh:
+				r.returnCh <- errInterrupted
+			case res := <-r.resultCh:
+				r.returnCh <- res
 			}
 		}
-	}
+	}()
+	return r.returnCh
 }
 
 func (r *interruptibleReader) Close() error {
+	close(r.cancelCh)
 	close(r.notifyCh)
 	return nil
 }

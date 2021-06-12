@@ -142,6 +142,12 @@ func (c *Client) Load(filename string, content string) <-chan client.EvalResult 
 	panic("load not supported")
 }
 
+func (c *Client) Stdin(input string) {
+	if err := c.Send(input); err != nil {
+		c.HandleErr(err)
+	}
+}
+
 func (c *Client) Interrupt() {
 	panic("interrupt not supported")
 }

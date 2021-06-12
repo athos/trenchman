@@ -59,13 +59,6 @@ func (r *Repl) SupportsOp(op string) bool {
 	return r.client.SupportsOp(op)
 }
 
-func (r *Repl) readLine() (string, error) {
-	r.reading.Store(true)
-	ret, err := r.in.readLine()
-	r.reading.Store(false)
-	return ret, err
-}
-
 func (r *Repl) Out(s string) {
 	r.printer.With(color.FgYellow).Fprint(r.out, s)
 }
@@ -78,26 +71,34 @@ func (r *Repl) Err(s string, fatal bool) {
 }
 
 func (r *Repl) In() (string, bool) {
-	line, err := r.readLine()
-	if err != nil {
-		if err == errInterrupted {
-			return "", false
-		}
-		panic(err)
-	}
-	return line, true
+	return "", false
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {
-	for res := range ch {
-		if s, ok := res.(string); ok {
-			if !r.hidesNil || s != "nil" {
-				r.printer.With(color.FgGreen).Fprintln(r.out, s)
+	r.reading.Store(true)
+	for {
+		select {
+		case res, ok := <-ch:
+			if !ok {
+				goto exit
 			}
-		} else if _, ok := res.(*client.RuntimeError); !ok {
-			panic("unexpected result received")
+			if s, ok := res.(string); ok {
+				if !r.hidesNil || s != "nil" {
+					r.printer.With(color.FgGreen).Fprintln(r.out, s)
+				}
+			} else if _, ok := res.(*client.RuntimeError); !ok {
+				panic("unexpected result received")
+			}
+		case res := <-r.in.readLine():
+			if s, ok := res.(string); ok {
+				r.client.Stdin(s)
+			} else if err := res.(error); err != errInterrupted {
+				panic(err)
+			}
 		}
 	}
+exit:
+	r.reading.Store(false)
 }
 
 func (r *Repl) Eval(code string) {
@@ -125,22 +126,24 @@ func (r *Repl) Load(filename string) {
 func (r *Repl) Start() {
 	for {
 		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
-		code, err := r.readLine()
-		if err != nil {
-			switch err {
+		res := <-r.in.readLine()
+		switch res := res.(type) {
+		case error:
+			switch res {
 			case io.EOF:
 				return
 			case errInterrupted:
 				continue
 			default:
-				panic(err)
+				panic(res)
 			}
+		case string:
+			code := strings.TrimSpace(res)
+			if code == "" {
+				continue
+			}
+			r.Eval(code)
 		}
-		code = strings.TrimSpace(code)
-		if code == "" {
-			continue
-		}
-		r.Eval(code)
 	}
 }
 
