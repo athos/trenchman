@@ -68,12 +68,11 @@ func (r *Repl) Err(s string, fatal bool) {
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {
-	r.reading.Store(true)
 	for {
 		select {
 		case res, ok := <-ch:
 			if !ok {
-				goto exit
+				return
 			}
 			if s, ok := res.(string); ok {
 				if !r.hidesNil || s != "nil" {
@@ -94,8 +93,6 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 			}
 		}
 	}
-exit:
-	r.reading.Store(false)
 }
 
 func (r *Repl) Eval(code string) {
@@ -127,10 +124,8 @@ func (r *Repl) Start() {
 		switch res := res.(type) {
 		case error:
 			switch res {
-			case io.EOF:
+			case io.EOF, errInterrupted:
 				return
-			case errInterrupted:
-				continue
 			default:
 				panic(res)
 			}
@@ -151,9 +146,7 @@ func (r *Repl) StartWatchingInterruption() {
 		for {
 			<-interrupt
 			r.client.Interrupt()
-			if r.reading.Load().(bool) {
-				r.in.interrupt()
-			}
+			r.in.interrupt()
 		}
 	}()
 }
