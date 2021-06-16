@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync/atomic"
 
 	"github.com/athos/trenchman/client"
 	"github.com/fatih/color"
@@ -19,7 +18,6 @@ type Repl struct {
 	out      io.Writer
 	err      io.Writer
 	printer  Printer
-	reading  atomic.Value
 	hidesNil bool
 }
 
@@ -41,7 +39,6 @@ func NewRepl(opts *Opts, factory func(client.OutputHandler) client.Client) *Repl
 	}
 	client := factory(repl)
 	repl.client = client
-	repl.reading.Store(false)
 	return repl
 }
 
