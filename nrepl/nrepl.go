@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/athos/trenchman/trenchman/bencode"
-	"github.com/athos/trenchman/trenchman/client"
+	"github.com/athos/trenchman/bencode"
+	"github.com/athos/trenchman/client"
 )
 
 type (

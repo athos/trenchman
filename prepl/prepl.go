@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/athos/trenchman/trenchman/client"
+	"github.com/athos/trenchman/client"
 	"olympos.io/encoding/edn"
 )
 

@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/athos/trenchman/trenchman/client"
-	"github.com/athos/trenchman/trenchman/nrepl"
-	"github.com/athos/trenchman/trenchman/prepl"
-	"github.com/athos/trenchman/trenchman/repl"
+	"github.com/athos/trenchman/client"
+	"github.com/athos/trenchman/nrepl"
+	"github.com/athos/trenchman/prepl"
+	"github.com/athos/trenchman/repl"
 	"github.com/mattn/go-isatty"
 )
 

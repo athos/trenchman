@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/athos/trenchman/trenchman/client"
+	"github.com/athos/trenchman/client"
 	"github.com/fatih/color"
 )
 
