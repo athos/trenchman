@@ -149,8 +149,11 @@ func (r *Repl) Start() {
 				continue
 			}
 			code := strings.TrimSpace(s)
-			if code == "" {
+			switch code {
+			case "":
 				continue
+			case ":repl/quit":
+				return
 			}
 			r.Eval(code)
 		}
