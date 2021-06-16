@@ -54,3 +54,7 @@ func (b *lineBuffer) feedLine(line string) (ret string, continued bool, err erro
 	b.buf = ""
 	return
 }
+
+func (b *lineBuffer) reset() {
+	b.buf = ""
+}

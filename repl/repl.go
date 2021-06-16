@@ -129,7 +129,15 @@ func (r *Repl) Start() {
 		switch res := res.(type) {
 		case error:
 			switch res {
-			case io.EOF, errInterrupted:
+			case errInterrupted:
+				if continued {
+					r.lineBuffer.reset()
+					continued = false
+					fmt.Fprintln(r.out)
+					continue
+				}
+				return
+			case io.EOF:
 				return
 			default:
 				panic(res)
