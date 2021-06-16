@@ -13,12 +13,13 @@ import (
 )
 
 type Repl struct {
-	client   client.Client
-	in       *interruptibleReader
-	out      io.Writer
-	err      io.Writer
-	printer  Printer
-	hidesNil bool
+	client     client.Client
+	in         *interruptibleReader
+	out        io.Writer
+	err        io.Writer
+	printer    Printer
+	lineBuffer *lineBuffer
+	hidesNil   bool
 }
 
 type Opts struct {
@@ -31,11 +32,12 @@ type Opts struct {
 
 func NewRepl(opts *Opts, factory func(client.OutputHandler) client.Client) *Repl {
 	repl := &Repl{
-		in:       newReader(opts.In),
-		out:      opts.Out,
-		err:      opts.Err,
-		printer:  opts.Printer,
-		hidesNil: opts.HidesNil,
+		in:         newReader(opts.In),
+		out:        opts.Out,
+		err:        opts.Err,
+		printer:    opts.Printer,
+		lineBuffer: &lineBuffer{},
+		hidesNil:   opts.HidesNil,
 	}
 	client := factory(repl)
 	repl.client = client
@@ -115,8 +117,14 @@ func (r *Repl) Load(filename string) {
 }
 
 func (r *Repl) Start() {
+	continued := false
 	for {
-		fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
+		if continued {
+			prompt := strings.Repeat(" ", len(r.client.CurrentNS())-2) + "#_=> "
+			fmt.Fprint(r.out, prompt)
+		} else {
+			fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
+		}
 		res := <-r.in.readLine()
 		switch res := res.(type) {
 		case error:
@@ -127,7 +135,12 @@ func (r *Repl) Start() {
 				panic(res)
 			}
 		case string:
-			code := strings.TrimSpace(res)
+			s, cont, _ := r.lineBuffer.feedLine(res)
+			continued = cont
+			if cont {
+				continue
+			}
+			code := strings.TrimSpace(s)
 			if code == "" {
 				continue
 			}
