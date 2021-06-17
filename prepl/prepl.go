@@ -2,7 +2,9 @@ package prepl
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -73,10 +75,12 @@ func (c *Client) Send(code client.Request) error {
 	return c.writer.Flush()
 }
 
-func (c *Client) Recv() (client.Response, error) {
-	var resp Response
-	if err := c.decoder.Decode(&resp); err != nil {
-		return nil, err
+func (c *Client) Recv() (resp client.Response, err error) {
+	if err = c.decoder.Decode(&resp); err != nil {
+		if err == io.EOF {
+			err = client.ErrDisconnected
+		}
+		return
 	}
 	return &resp, nil
 }

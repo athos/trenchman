@@ -1,6 +1,9 @@
 package client
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 type (
 	Request  interface{}
@@ -38,6 +41,8 @@ type (
 		Err(s string, fatal bool)
 	}
 )
+
+var ErrDisconnected = errors.New("disconnected")
 
 func NewRuntimeError(err string) *RuntimeError {
 	return &RuntimeError{err}

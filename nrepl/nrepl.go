@@ -3,6 +3,7 @@ package nrepl
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/athos/trenchman/bencode"
@@ -47,6 +48,9 @@ func (conn *Conn) Send(req client.Request) error {
 func (conn *Conn) Recv() (resp client.Response, err error) {
 	datum, err := conn.decoder.Decode()
 	if err != nil {
+		if err == io.EOF {
+			err = client.ErrDisconnected
+		}
 		return
 	}
 	dict, ok := datum.(map[string]bencode.Datum)
