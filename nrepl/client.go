@@ -16,6 +16,7 @@ type (
 		conn           *Conn
 		sessionInfo    *SessionInfo
 		outputHandler  client.OutputHandler
+		errHandler     client.ErrorHandler
 		done           chan struct{}
 		lock           sync.RWMutex
 		ns             string
@@ -29,12 +30,14 @@ type (
 		Port          int
 		Oneshot       bool
 		OutputHandler client.OutputHandler
+		ErrorHandler  client.ErrorHandler
 	}
 )
 
 func NewClient(clientOpts *Opts) (*Client, error) {
 	c := &Client{
 		outputHandler: clientOpts.OutputHandler,
+		errHandler:    clientOpts.ErrorHandler,
 		ns:            "user",
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
@@ -83,8 +86,8 @@ func has(resp Response, key string) bool {
 func (c *Client) statusContains(datum bencode.Datum, status string) bool {
 	statuses, ok := datum.([]bencode.Datum)
 	if !ok {
-		msg := fmt.Sprintf("Unknown status returned: %v", statuses)
-		c.outputHandler.Err(msg, true)
+		err := fmt.Errorf("unknown status returned: %v", statuses)
+		c.HandleErr(err)
 	}
 	for _, s := range statuses {
 		if s == status {
@@ -116,17 +119,16 @@ func (c *Client) HandleResp(response client.Response) {
 	case has(resp, "out"):
 		c.outputHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
-		c.outputHandler.Err(resp["err"].(string), false)
+		c.outputHandler.Err(resp["err"].(string))
 	case has(resp, "status"):
 		c.handleStatusUpdate(resp)
 	default:
-		msg := fmt.Sprintf("Unknown response returned: %v", resp)
-		c.outputHandler.Err(msg, true)
+		c.HandleErr(fmt.Errorf("unknown response returned: %v", resp))
 	}
 }
 
 func (c *Client) HandleErr(err error) {
-	c.outputHandler.Err(err.Error(), true)
+	c.errHandler.HandleErr(err)
 }
 
 func (c *Client) handleStatusUpdate(resp Response) {
@@ -159,7 +161,7 @@ func (c *Client) send(req Request) {
 		req["session"] = c.sessionInfo.session
 	}
 	if err := c.conn.Send(req); err != nil {
-		c.outputHandler.Err(err.Error(), true)
+		c.HandleErr(err)
 	}
 }
 

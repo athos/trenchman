@@ -2,7 +2,6 @@ package prepl
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -27,6 +26,7 @@ type (
 		decoder       *edn.Decoder
 		writer        *bufio.Writer
 		outputHandler client.OutputHandler
+		errHandler    client.ErrorHandler
 		lock          sync.RWMutex
 		ns            string
 		returnCh      chan client.EvalResult
@@ -37,6 +37,7 @@ type (
 		Host          string
 		Port          int
 		OutputHandler client.OutputHandler
+		ErrorHandler  client.ErrorHandler
 	}
 )
 
@@ -50,6 +51,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		decoder:       edn.NewDecoder(socket),
 		writer:        bufio.NewWriter(socket),
 		outputHandler: opts.OutputHandler,
+		errHandler:    opts.ErrorHandler,
 		ns:            "user",
 		done:          make(chan struct{}),
 	}
@@ -94,7 +96,7 @@ func (c *Client) HandleResp(response client.Response) {
 	case ":out":
 		c.outputHandler.Out(resp.Val)
 	case ":err":
-		c.outputHandler.Err(resp.Val, false)
+		c.outputHandler.Err(resp.Val)
 	case ":tap":
 	default:
 		panic(fmt.Errorf("unknown response: %v", resp.Tag))
@@ -108,7 +110,7 @@ func (c *Client) handleResult(resp *Response) {
 	c.ns = resp.Ns
 	c.lock.Unlock()
 	if resp.Exception {
-		c.outputHandler.Err(errorMessage(resp.Val)+"\n", false)
+		c.outputHandler.Err(errorMessage(resp.Val)+"\n")
 		ch <- client.NewRuntimeError(resp.Val)
 	} else {
 		ch <- resp.Val
@@ -117,7 +119,7 @@ func (c *Client) handleResult(resp *Response) {
 }
 
 func (c *Client) HandleErr(err error) {
-	c.outputHandler.Err(err.Error(), true)
+	c.errHandler.HandleErr(err)
 }
 
 func (c *Client) CurrentNS() string {
@@ -142,7 +144,7 @@ func (c *Client) Eval(code string) <-chan client.EvalResult {
 	c.returnCh = ch
 	c.lock.Unlock()
 	if err := c.Send(code + "\n"); err != nil {
-		c.outputHandler.Err(err.Error(), true)
+		c.HandleErr(err)
 	}
 	return ch
 }

@@ -30,7 +30,10 @@ type Opts struct {
 	HidesNil bool
 }
 
-func NewRepl(opts *Opts, factory func(client.OutputHandler) client.Client) *Repl {
+func NewRepl(
+	opts *Opts,
+	factory func(client.OutputHandler, client.ErrorHandler) client.Client,
+) *Repl {
 	repl := &Repl{
 		in:         newReader(opts.In),
 		out:        opts.Out,
@@ -39,7 +42,7 @@ func NewRepl(opts *Opts, factory func(client.OutputHandler) client.Client) *Repl
 		lineBuffer: &lineBuffer{},
 		hidesNil:   opts.HidesNil,
 	}
-	client := factory(repl)
+	client := factory(repl, repl)
 	repl.client = client
 	return repl
 }
@@ -59,11 +62,15 @@ func (r *Repl) Out(s string) {
 	r.printer.With(color.FgYellow).Fprint(r.out, s)
 }
 
-func (r *Repl) Err(s string, fatal bool) {
-	if fatal {
-		panic(s)
-	}
+func (r *Repl) Err(s string) {
 	r.printer.With(color.FgRed).Fprint(r.err, s)
+}
+
+func (r *Repl) HandleErr(err error) {
+	switch err {
+	default:
+		panic(err)
+	}
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {

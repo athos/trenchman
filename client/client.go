@@ -15,9 +15,17 @@ type (
 		Recv() (Response, error)
 	}
 
-	Handler interface {
+	ResponseHandler interface {
 		HandleResp(resp Response)
+	}
+
+	ErrorHandler interface {
 		HandleErr(error)
+	}
+
+	Handler interface {
+		ResponseHandler
+		ErrorHandler
 	}
 
 	// EvalResult is either string or RuntimeError
@@ -38,7 +46,7 @@ type (
 
 	OutputHandler interface {
 		Out(s string)
-		Err(s string, fatal bool)
+		Err(s string)
 	}
 )
 
