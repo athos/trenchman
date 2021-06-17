@@ -68,6 +68,9 @@ func (r *Repl) Err(s string) {
 
 func (r *Repl) HandleErr(err error) {
 	switch err {
+	case client.ErrDisconnected:
+		r.printer.With(color.FgRed).Fprintln(r.err, "Disconnected from server")
+		os.Exit(1)
 	default:
 		panic(err)
 	}
