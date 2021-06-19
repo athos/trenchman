@@ -45,13 +45,13 @@ func (conn *Conn) Send(req client.Request) error {
 	return conn.encoder.Encode(map[string]bencode.Datum(req.(Request)))
 }
 
-func (conn *Conn) Recv() (resp client.Response, err error) {
+func (conn *Conn) Recv() (client.Response, error) {
 	datum, err := conn.decoder.Decode()
 	if err != nil {
 		if err == io.EOF {
 			err = client.ErrDisconnected
 		}
-		return
+		return nil, err
 	}
 	dict, ok := datum.(map[string]bencode.Datum)
 	if !ok {

@@ -77,14 +77,15 @@ func (c *Client) Send(code client.Request) error {
 	return c.writer.Flush()
 }
 
-func (c *Client) Recv() (resp client.Response, err error) {
-	if err = c.decoder.Decode(&resp); err != nil {
+func (c *Client) Recv() (client.Response, error) {
+	var resp Response
+	if err := c.decoder.Decode(&resp); err != nil {
 		if err == io.EOF {
 			err = client.ErrDisconnected
 		}
-		return
+		return nil, err
 	}
-	return &resp, nil
+	return client.Response(&resp), nil
 }
 
 func (c *Client) HandleResp(response client.Response) {
