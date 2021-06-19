@@ -2,6 +2,7 @@ package nrepl
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,23 +32,24 @@ type (
 		Oneshot       bool
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
+		connBuilder func(host string, port int) (net.Conn, error)
 	}
 )
 
-func NewClient(clientOpts *Opts) (*Client, error) {
+func NewClient(opts *Opts) (*Client, error) {
 	c := &Client{
-		outputHandler: clientOpts.OutputHandler,
-		errHandler:    clientOpts.ErrorHandler,
+		outputHandler: opts.OutputHandler,
+		errHandler:    opts.ErrorHandler,
 		ns:            "user",
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
 	}
-	conn, err := Connect(clientOpts.Host, clientOpts.Port)
+	conn, err := Connect(&ConnOpts{opts.Host, opts.Port, opts.connBuilder})
 	if err != nil {
 		return nil, err
 	}
 	c.conn = conn
-	if !clientOpts.Oneshot {
+	if !opts.Oneshot {
 		sessionInfo, err := conn.initSession()
 		if err != nil {
 			return nil, err
