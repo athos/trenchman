@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/athos/trenchman/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +98,7 @@ func TestEval(t *testing.T) {
 	tests := []struct {
 		input  string
 		step   step
-		result string
+		result client.EvalResult
 		outs   []string
 		errs   []string
 	}{
@@ -110,6 +111,18 @@ func TestEval(t *testing.T) {
 			"3",
 			nil,
 			nil,
+		},
+		{
+			"(/ 1 0)",
+			step{
+				"(/ 1 0)\n",
+				[]string{
+					`{:tag :ret, :val "{:phase :execution, :cause \"Divide by zero\", :trace [[clojure.lang.Numbers divide \"Numbers.java\" 188]], :via [{:type java.lang.ArithmeticException, :message \"Divide by zero\", :at [clojure.lang.Numbers divide \"Numbers.java\" 188]}]}", :exception true}`,
+				},
+			},
+			client.NewRuntimeError("Execution error (ArithmeticException) at clojure.lang.Numbers/divide (Numbers.java:188).\nDivide by zero"),
+			nil,
+			[]string{"Execution error (ArithmeticException) at clojure.lang.Numbers/divide (Numbers.java:188).\nDivide by zero\n"},
 		},
 		{
 			"(run! prn (range 3))",
@@ -125,6 +138,19 @@ func TestEval(t *testing.T) {
 			"nil",
 			[]string{"1", "2", "3"},
 			nil,
+		},
+		{
+			"(binding [*out* *err*] (prn 42))",
+			step{
+				"(binding [*out* *err*] (prn 42))\n",
+				[]string{
+					`{:tag :err, :val "42"}`,
+					`{:tag :ret, :val "nil"}`,
+				},
+			},
+			"nil",
+			nil,
+			[]string{"42"},
 		},
 	}
 	for _, tt := range tests {
@@ -144,7 +170,7 @@ func TestEval(t *testing.T) {
 			assert.Nil(t, err)
 			ch := c.Eval(tt.input)
 			ret := <-ch
-			assert.Equal(t, tt.result, ret.(string))
+			assert.Equal(t, tt.result, ret)
 			assert.Nil(t, handledErr)
 			assert.Equal(t, tt.outs, outHandler.outs)
 			assert.Equal(t, tt.errs, outHandler.errs)
