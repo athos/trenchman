@@ -118,8 +118,9 @@ func (c *Client) handleResult(resp *Response) {
 	c.ns = resp.Ns
 	c.lock.Unlock()
 	if resp.Exception {
-		c.outputHandler.Err(errorMessage(resp.Val)+"\n")
-		ch <- client.NewRuntimeError(resp.Val)
+		msg := errorMessage(resp.Val)
+		c.outputHandler.Err(msg + "\n")
+		ch <- client.NewRuntimeError(msg)
 	} else {
 		ch <- resp.Val
 	}
