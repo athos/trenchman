@@ -15,6 +15,7 @@ import (
 type (
 	mockServer struct {
 		steps []step
+		queue chan []string
 	}
 
 	step struct {
@@ -24,20 +25,15 @@ type (
 )
 
 func (m *mockServer) Read(b []byte) (int, error) {
-	if len(m.steps) == 0 {
-		// when steps are all done, Read must block
-		<-(chan interface{}(nil))
-	}
-	step := &m.steps[0]
 	var buf bytes.Buffer
-	for _, res := range step.responses {
+	responses := <-m.queue
+	for _, res := range responses {
 		buf.WriteString(res)
 	}
 	n, err := buf.Read(b)
 	if err != nil {
 		return 0, err
 	}
-	m.steps = m.steps[1:]
 	return n, nil
 }
 
@@ -49,6 +45,10 @@ func (m *mockServer) Write(b []byte) (int, error) {
 	if !bytes.Equal(b, []byte(step.expected)) {
 		return 0, fmt.Errorf("%q expected, but got %q", []byte(step.expected), b)
 	}
+	if len(step.responses) > 0 {
+		m.queue <- step.responses
+	}
+	m.steps = m.steps[1:]
 	return len(b), nil
 }
 
@@ -84,14 +84,17 @@ func (f errorHandlerFunc) HandleErr(err error) {
 	f(err)
 }
 
-func setupMock(steps ...step) *mockServer {
+func setupMock(steps []step) *mockServer {
 	s := make([]step, 1, len(steps)+1)
 	s[0] = step{
 		"(set! *print-namespace-maps* false)",
 		[]string{`{:tag :ret, :val "nil"}`},
 	}
 	s = append(s, steps...)
-	return &mockServer{s}
+	return &mockServer{
+		steps: s,
+		queue: make(chan []string, 1),
+	}
 }
 
 func TestEval(t *testing.T) {
@@ -155,7 +158,7 @@ func TestEval(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			mock := setupMock(tt.step)
+			mock := setupMock([]step{tt.step})
 			var outHandler mockOutputHandler
 			var handledErr error
 			c, err := NewClient(&Opts{
@@ -178,4 +181,42 @@ func TestEval(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	}
+	t.Run("(read-line)", func(t *testing.T) {
+		steps := []step{
+			{
+				"(read-line)\n",
+				nil,
+			},
+			{
+				"foo\n",
+				[]string{
+					`{:tag :ret, :val "\"foo\""}`,
+				},
+			},
+		}
+		mock := setupMock(steps)
+		var outHandler mockOutputHandler
+		var handledErr error
+		c, err := NewClient(&Opts{
+			connBuilder: func(_ string, _ int) (net.Conn, error) {
+				return mock, nil
+			},
+			OutputHandler: &outHandler,
+			ErrorHandler: errorHandlerFunc(func(err error) {
+				handledErr = err
+			}),
+		})
+		assert.Nil(t, err)
+		ch := c.Eval("(read-line)")
+		go func() {
+			c.Stdin("foo\n")
+		}()
+		ret := <-ch
+		assert.Equal(t, "\"foo\"", ret)
+		assert.Nil(t, handledErr)
+		assert.Nil(t, outHandler.outs)
+		assert.Nil(t, outHandler.errs)
+		err = c.Close()
+		assert.Nil(t, err)
+	})
 }
