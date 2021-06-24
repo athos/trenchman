@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -26,7 +27,10 @@ type (
 
 func (m *mockServer) Read(b []byte) (int, error) {
 	var buf bytes.Buffer
-	responses := <-m.queue
+	responses, ok := <-m.queue
+	if !ok {
+		return 0, io.EOF
+	}
 	for _, res := range responses {
 		buf.WriteString(res)
 	}
@@ -53,6 +57,7 @@ func (m *mockServer) Write(b []byte) (int, error) {
 }
 
 func (m *mockServer) Close() error {
+	close(m.queue)
 	if len(m.steps) > 0 {
 		return errors.New("expected steps to be completed")
 	}
