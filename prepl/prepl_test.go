@@ -101,6 +101,7 @@ func TestEval(t *testing.T) {
 	tests := []struct {
 		input  string
 		step   step
+		ns     string
 		result client.EvalResult
 		outs   []string
 		errs   []string
@@ -109,9 +110,21 @@ func TestEval(t *testing.T) {
 			"(+ 1 2)",
 			step{
 				"(+ 1 2)\n",
-				[]string{`{:tag :ret, :val "3"}`},
+				[]string{`{:tag :ret, :val "3", :ns "user"}`},
 			},
+			"user",
 			"3",
+			nil,
+			nil,
+		},
+		{
+			"(ns foo)",
+			step{
+				"(ns foo)\n",
+				[]string{`{:tag :ret, :val "nil", :ns "foo"}`},
+			},
+			"foo",
+			"nil",
 			nil,
 			nil,
 		},
@@ -120,9 +133,10 @@ func TestEval(t *testing.T) {
 			step{
 				"(/ 1 0)\n",
 				[]string{
-					`{:tag :ret, :val "{:phase :execution, :cause \"Divide by zero\", :trace [[clojure.lang.Numbers divide \"Numbers.java\" 188]], :via [{:type java.lang.ArithmeticException, :message \"Divide by zero\", :at [clojure.lang.Numbers divide \"Numbers.java\" 188]}]}", :exception true}`,
+					`{:tag :ret, :val "{:phase :execution, :cause \"Divide by zero\", :trace [[clojure.lang.Numbers divide \"Numbers.java\" 188]], :via [{:type java.lang.ArithmeticException, :message \"Divide by zero\", :at [clojure.lang.Numbers divide \"Numbers.java\" 188]}]}", :exception true, :ns "user"}`,
 				},
 			},
+			"user",
 			client.NewRuntimeError("Execution error (ArithmeticException) at clojure.lang.Numbers/divide (Numbers.java:188).\nDivide by zero"),
 			nil,
 			[]string{"Execution error (ArithmeticException) at clojure.lang.Numbers/divide (Numbers.java:188).\nDivide by zero\n"},
@@ -135,9 +149,10 @@ func TestEval(t *testing.T) {
 					`{:tag :out, :val "1"}`,
 					`{:tag :out, :val "2"}`,
 					`{:tag :out, :val "3"}`,
-					`{:tag :ret, :val "nil"}`,
+					`{:tag :ret, :val "nil", :ns "user"}`,
 				},
 			},
+			"user",
 			"nil",
 			[]string{"1", "2", "3"},
 			nil,
@@ -148,9 +163,10 @@ func TestEval(t *testing.T) {
 				"(binding [*out* *err*] (prn 42))\n",
 				[]string{
 					`{:tag :err, :val "42"}`,
-					`{:tag :ret, :val "nil"}`,
+					`{:tag :ret, :val "nil", :ns "user"}`,
 				},
 			},
+			"user",
 			"nil",
 			nil,
 			[]string{"42"},
@@ -174,6 +190,7 @@ func TestEval(t *testing.T) {
 			ch := c.Eval(tt.input)
 			ret := <-ch
 			assert.Equal(t, tt.result, ret)
+			assert.Equal(t, tt.ns, c.CurrentNS())
 			assert.Nil(t, handledErr)
 			assert.Equal(t, tt.outs, outHandler.outs)
 			assert.Equal(t, tt.errs, outHandler.errs)
@@ -190,7 +207,7 @@ func TestEval(t *testing.T) {
 			{
 				"foo\n",
 				[]string{
-					`{:tag :ret, :val "\"foo\""}`,
+					`{:tag :ret, :val "\"foo\"", :ns "user"}`,
 				},
 			},
 		}
