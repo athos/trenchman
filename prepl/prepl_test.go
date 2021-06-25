@@ -242,3 +242,32 @@ func TestEval(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestLoad(t *testing.T) {
+	mock := setupMock([]step{
+		{
+			"(do (println \"Hello, World!\"))\n",
+			[]string{`{:tag :ret, :val "nil"}`},
+		},
+	})
+	var outHandler mockOutputHandler
+	var handledErr error
+	c, err := NewClient(&Opts{
+		connBuilder: func(_ string, _ int) (net.Conn, error) {
+			return mock, nil
+		},
+		OutputHandler: &outHandler,
+		ErrorHandler: errorHandlerFunc(func(err error) {
+			handledErr = err
+		}),
+	})
+	assert.Nil(t, err)
+	ch := c.Load("hello.clj", "(println \"Hello, World!\")")
+	ret := <-ch
+	assert.Equal(t, "nil", ret)
+	assert.Nil(t, handledErr)
+	assert.Nil(t, outHandler.outs)
+	assert.Nil(t, outHandler.errs)
+	err = c.Close()
+	assert.Nil(t, err)
+}
