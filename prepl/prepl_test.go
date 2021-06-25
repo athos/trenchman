@@ -15,8 +15,11 @@ import (
 
 type (
 	mockServer struct {
-		steps []step
-		queue chan []string
+		steps      []step
+		queue      chan []string
+		outs       []string
+		errs       []string
+		handledErr error
 	}
 
 	step struct {
@@ -24,6 +27,18 @@ type (
 		responses []string
 	}
 )
+
+func (m *mockServer) Out(s string) {
+	m.outs = append(m.outs, s)
+}
+
+func (m *mockServer) Err(s string) {
+	m.errs = append(m.errs, s)
+}
+
+func (m *mockServer) HandleErr(err error) {
+	m.handledErr = err
+}
 
 func (m *mockServer) Read(b []byte) (int, error) {
 	var buf bytes.Buffer
@@ -70,25 +85,6 @@ func (m *mockServer) SetDeadline(t time.Time) error      { return nil }
 func (m *mockServer) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockServer) SetWriteDeadline(t time.Time) error { return nil }
 
-type mockOutputHandler struct {
-	outs []string
-	errs []string
-}
-
-func (m *mockOutputHandler) Out(s string) {
-	m.outs = append(m.outs, s)
-}
-
-func (m *mockOutputHandler) Err(s string) {
-	m.errs = append(m.errs, s)
-}
-
-type errorHandlerFunc func(error)
-
-func (f errorHandlerFunc) HandleErr(err error) {
-	f(err)
-}
-
 func setupMock(steps []step) *mockServer {
 	s := make([]step, 1, len(steps)+1)
 	s[0] = step{
@@ -100,6 +96,16 @@ func setupMock(steps []step) *mockServer {
 		steps: s,
 		queue: make(chan []string, 1),
 	}
+}
+
+func setupClient(mock *mockServer) (*Client, error) {
+	return NewClient(&Opts{
+		connBuilder: func(_ string, _ int) (net.Conn, error) {
+			return mock, nil
+		},
+		OutputHandler: mock,
+		ErrorHandler:  mock,
+	})
 }
 
 func TestEval(t *testing.T) {
@@ -180,25 +186,15 @@ func TestEval(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			mock := setupMock([]step{tt.step})
-			var outHandler mockOutputHandler
-			var handledErr error
-			c, err := NewClient(&Opts{
-				connBuilder: func(_ string, _ int) (net.Conn, error) {
-					return mock, nil
-				},
-				OutputHandler: &outHandler,
-				ErrorHandler: errorHandlerFunc(func(err error) {
-					handledErr = err
-				}),
-			})
+			c, err := setupClient(mock)
 			assert.Nil(t, err)
 			ch := c.Eval(tt.input)
 			ret := <-ch
 			assert.Equal(t, tt.result, ret)
 			assert.Equal(t, tt.ns, c.CurrentNS())
-			assert.Nil(t, handledErr)
-			assert.Equal(t, tt.outs, outHandler.outs)
-			assert.Equal(t, tt.errs, outHandler.errs)
+			assert.Nil(t, mock.handledErr)
+			assert.Equal(t, tt.outs, mock.outs)
+			assert.Equal(t, tt.errs, mock.errs)
 			err = c.Close()
 			assert.Nil(t, err)
 		})
@@ -217,17 +213,7 @@ func TestEval(t *testing.T) {
 			},
 		}
 		mock := setupMock(steps)
-		var outHandler mockOutputHandler
-		var handledErr error
-		c, err := NewClient(&Opts{
-			connBuilder: func(_ string, _ int) (net.Conn, error) {
-				return mock, nil
-			},
-			OutputHandler: &outHandler,
-			ErrorHandler: errorHandlerFunc(func(err error) {
-				handledErr = err
-			}),
-		})
+		c, err := setupClient(mock)
 		assert.Nil(t, err)
 		ch := c.Eval("(read-line)")
 		go func() {
@@ -235,9 +221,9 @@ func TestEval(t *testing.T) {
 		}()
 		ret := <-ch
 		assert.Equal(t, "\"foo\"", ret)
-		assert.Nil(t, handledErr)
-		assert.Nil(t, outHandler.outs)
-		assert.Nil(t, outHandler.errs)
+		assert.Nil(t, mock.handledErr)
+		assert.Nil(t, mock.outs)
+		assert.Nil(t, mock.errs)
 		err = c.Close()
 		assert.Nil(t, err)
 	})
@@ -250,24 +236,14 @@ func TestLoad(t *testing.T) {
 			[]string{`{:tag :ret, :val "nil"}`},
 		},
 	})
-	var outHandler mockOutputHandler
-	var handledErr error
-	c, err := NewClient(&Opts{
-		connBuilder: func(_ string, _ int) (net.Conn, error) {
-			return mock, nil
-		},
-		OutputHandler: &outHandler,
-		ErrorHandler: errorHandlerFunc(func(err error) {
-			handledErr = err
-		}),
-	})
+	c, err := setupClient(mock)
 	assert.Nil(t, err)
 	ch := c.Load("hello.clj", "(println \"Hello, World!\")")
 	ret := <-ch
 	assert.Equal(t, "nil", ret)
-	assert.Nil(t, handledErr)
-	assert.Nil(t, outHandler.outs)
-	assert.Nil(t, outHandler.errs)
+	assert.Nil(t, mock.handledErr)
+	assert.Nil(t, mock.outs)
+	assert.Nil(t, mock.errs)
 	err = c.Close()
 	assert.Nil(t, err)
 }
