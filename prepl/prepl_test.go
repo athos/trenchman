@@ -195,8 +195,7 @@ func TestEval(t *testing.T) {
 			assert.Nil(t, mock.handledErr)
 			assert.Equal(t, tt.outs, mock.outs)
 			assert.Equal(t, tt.errs, mock.errs)
-			err = c.Close()
-			assert.Nil(t, err)
+			assert.Nil(t, c.Close())
 		})
 	}
 	t.Run("(read-line)", func(t *testing.T) {
@@ -224,8 +223,7 @@ func TestEval(t *testing.T) {
 		assert.Nil(t, mock.handledErr)
 		assert.Nil(t, mock.outs)
 		assert.Nil(t, mock.errs)
-		err = c.Close()
-		assert.Nil(t, err)
+		assert.Nil(t, c.Close())
 	})
 }
 
@@ -244,6 +242,5 @@ func TestLoad(t *testing.T) {
 	assert.Nil(t, mock.handledErr)
 	assert.Nil(t, mock.outs)
 	assert.Nil(t, mock.errs)
-	err = c.Close()
-	assert.Nil(t, err)
+	assert.Nil(t, c.Close())
 }
