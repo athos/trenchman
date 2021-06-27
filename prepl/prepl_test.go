@@ -40,7 +40,7 @@ func TestEval(t *testing.T) {
 		{
 			"(+ 1 2)",
 			client.Step{
-				Expected: "(+ 1 2)\n",
+				Expected: "(do (+ 1 2))",
 				Responses: []string{`{:tag :ret, :val "3", :ns "user"}`},
 			},
 			"user",
@@ -51,7 +51,7 @@ func TestEval(t *testing.T) {
 		{
 			"(ns foo)",
 			client.Step{
-				Expected: "(ns foo)\n",
+				Expected: "(do (ns foo))",
 				Responses: []string{`{:tag :ret, :val "nil", :ns "foo"}`},
 			},
 			"foo",
@@ -62,7 +62,7 @@ func TestEval(t *testing.T) {
 		{
 			"(/ 1 0)",
 			client.Step{
-				Expected: "(/ 1 0)\n",
+				Expected: "(do (/ 1 0))",
 				Responses: []string{
 					`{:tag :ret, :val "{:phase :execution, :cause \"Divide by zero\", :trace [[clojure.lang.Numbers divide \"Numbers.java\" 188]], :via [{:type java.lang.ArithmeticException, :message \"Divide by zero\", :at [clojure.lang.Numbers divide \"Numbers.java\" 188]}]}", :exception true, :ns "user"}`,
 				},
@@ -75,7 +75,7 @@ func TestEval(t *testing.T) {
 		{
 			"(run! prn (range 3))",
 			client.Step{
-				Expected: "(run! prn (range 3))\n",
+				Expected: "(do (run! prn (range 3)))",
 				Responses: []string{
 					`{:tag :out, :val "1"}`,
 					`{:tag :out, :val "2"}`,
@@ -91,7 +91,7 @@ func TestEval(t *testing.T) {
 		{
 			"(binding [*out* *err*] (prn 42))",
 			client.Step{
-				Expected: "(binding [*out* *err*] (prn 42))\n",
+				Expected: "(do (binding [*out* *err*] (prn 42)))",
 				Responses: []string{
 					`{:tag :err, :val "42"}`,
 					`{:tag :ret, :val "nil", :ns "user"}`,
@@ -121,7 +121,7 @@ func TestEval(t *testing.T) {
 	t.Run("(read-line)", func(t *testing.T) {
 		steps := []client.Step{
 			{
-				Expected: "(read-line)\n",
+				Expected: "(do (read-line))",
 				Responses: nil,
 			},
 			{
@@ -150,7 +150,7 @@ func TestEval(t *testing.T) {
 func TestLoad(t *testing.T) {
 	mock := setupMock([]client.Step{
 		{
-			Expected: "(do (println \"Hello, World!\"))\n",
+			Expected: "(do (println \"Hello, World!\"))",
 			Responses: []string{`{:tag :ret, :val "nil"}`},
 		},
 	})

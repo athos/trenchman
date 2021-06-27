@@ -152,14 +152,14 @@ func (c *Client) Eval(code string) <-chan client.EvalResult {
 	c.lock.Lock()
 	c.returnCh = ch
 	c.lock.Unlock()
-	if err := c.Send(code + "\n"); err != nil {
+	if err := c.Send(fmt.Sprintf("(do %s)", code)); err != nil {
 		c.HandleErr(err)
 	}
 	return ch
 }
 
 func (c *Client) Load(filename string, content string) <-chan client.EvalResult {
-	return c.Eval(fmt.Sprintf("(do %s)", content))
+	return c.Eval(content)
 }
 
 func (c *Client) Stdin(input string) {
