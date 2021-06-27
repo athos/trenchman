@@ -77,15 +77,15 @@ func TestEval(t *testing.T) {
 			client.Step{
 				Expected: "(do (run! prn (range 3)))",
 				Responses: []string{
-					`{:tag :out, :val "1"}`,
-					`{:tag :out, :val "2"}`,
-					`{:tag :out, :val "3"}`,
+					"{:tag :out, :val \"0\n\"}",
+					"{:tag :out, :val \"1\n\"}",
+					"{:tag :out, :val \"2\n\"}",
 					`{:tag :ret, :val "nil", :ns "user"}`,
 				},
 			},
 			"user",
 			"nil",
-			[]string{"1", "2", "3"},
+			[]string{"0\n", "1\n", "2\n"},
 			nil,
 		},
 		{
@@ -93,14 +93,14 @@ func TestEval(t *testing.T) {
 			client.Step{
 				Expected: "(do (binding [*out* *err*] (prn 42)))",
 				Responses: []string{
-					`{:tag :err, :val "42"}`,
+					"{:tag :err, :val \"42\n\"}",
 					`{:tag :ret, :val "nil", :ns "user"}`,
 				},
 			},
 			"user",
 			"nil",
 			nil,
-			[]string{"42"},
+			[]string{"42\n"},
 		},
 	}
 	for _, tt := range tests {
@@ -127,7 +127,7 @@ func TestEval(t *testing.T) {
 			{
 				Expected: "foo\n",
 				Responses: []string{
-					`{:tag :ret, :val "\"foo\"", :ns "user"}`,
+					"{:tag :ret, :val \"\\\"foo\\\"\\n\", :ns \"user\"}",
 				},
 			},
 		}
@@ -139,7 +139,7 @@ func TestEval(t *testing.T) {
 			c.Stdin("foo\n")
 		}()
 		ret := <-ch
-		assert.Equal(t, "\"foo\"", ret)
+		assert.Equal(t, "\"foo\"\n", ret)
 		assert.Nil(t, mock.HandledErr())
 		assert.Nil(t, mock.Outs())
 		assert.Nil(t, mock.Errs())
@@ -151,7 +151,10 @@ func TestLoad(t *testing.T) {
 	mock := setupMock([]client.Step{
 		{
 			Expected: "(do (println \"Hello, World!\"))",
-			Responses: []string{`{:tag :ret, :val "nil"}`},
+			Responses: []string{
+				"{:tag :out, :val \"Hello, World!\n\"}",
+				`{:tag :ret, :val "nil"}`,
+			},
 		},
 	})
 	c, err := setupClient(mock)
@@ -160,7 +163,7 @@ func TestLoad(t *testing.T) {
 	ret := <-ch
 	assert.Equal(t, "nil", ret)
 	assert.Nil(t, mock.HandledErr())
-	assert.Nil(t, mock.Outs())
+	assert.Equal(t, []string{"Hello, World!\n"}, mock.Outs())
 	assert.Nil(t, mock.Errs())
 	assert.Nil(t, c.Close())
 }
