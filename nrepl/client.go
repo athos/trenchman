@@ -18,6 +18,7 @@ type (
 		sessionInfo    *SessionInfo
 		outputHandler  client.OutputHandler
 		errHandler     client.ErrorHandler
+		idGenerator    func() string
 		done           chan struct{}
 		lock           sync.RWMutex
 		ns             string
@@ -32,7 +33,8 @@ type (
 		Oneshot       bool
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
-		connBuilder func(host string, port int) (net.Conn, error)
+		connBuilder   func(host string, port int) (net.Conn, error)
+		idGenerator   func() string
 	}
 )
 
@@ -43,6 +45,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		ns:            "user",
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
+		idGenerator:   opts.idGenerator,
 	}
 	conn, err := Connect(&ConnOpts{opts.Host, opts.Port, opts.connBuilder})
 	if err != nil {
@@ -55,6 +58,9 @@ func NewClient(opts *Opts) (*Client, error) {
 			return nil, err
 		}
 		c.sessionInfo = sessionInfo
+	}
+	if c.idGenerator == nil {
+		c.idGenerator = uuid.NewString
 	}
 	go client.StartLoop(c.conn, c, c.done)
 	return c, nil
@@ -168,7 +174,7 @@ func (c *Client) send(req Request) {
 }
 
 func (c *Client) newIdChan() (string, chan client.EvalResult) {
-	id := uuid.NewString()
+	id := c.idGenerator()
 	ch := make(chan client.EvalResult)
 	c.lock.Lock()
 	c.pending[id] = ch
