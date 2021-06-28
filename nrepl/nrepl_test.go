@@ -29,7 +29,7 @@ func encode(datum bencode.Datum) string {
 	return sb.String()
 }
 
-func setupMock(steps []step) *client.MockServer {
+func setupMock(steps []step, autoIdEnabled bool) *client.MockServer {
 	res := make([]client.Step, 2, len(steps)+1)
 	res[0] = client.Step{
 		Expected: encode(map[string]bencode.Datum{
@@ -56,12 +56,16 @@ func setupMock(steps []step) *client.MockServer {
 		},
 	}
 	for _, step := range steps {
-		step.expected["session"] = SESSION_ID
-		step.expected["id"] = EXEC_ID
+		if autoIdEnabled {
+			step.expected["session"] = SESSION_ID
+			step.expected["id"] = EXEC_ID
+		}
 		s := client.Step{Expected: encode(step.expected)}
 		for _, r := range step.responses {
-			r["session"] = SESSION_ID
-			r["id"] = EXEC_ID
+			if autoIdEnabled {
+				r["session"] = SESSION_ID
+				r["id"] = EXEC_ID
+			}
 			s.Responses = append(s.Responses, encode(r))
 		}
 		res = append(res, s)
@@ -190,7 +194,7 @@ func TestEval(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			mock := setupMock([]step{tt.step})
+			mock := setupMock([]step{tt.step}, true)
 			c, err := setupClient(mock)
 			assert.Nil(t, err)
 			ch := c.Eval(tt.input)
@@ -203,4 +207,62 @@ func TestEval(t *testing.T) {
 			assert.Nil(t, c.Close())
 		})
 	}
+	t.Run("(read-line)", func(t *testing.T) {
+		steps := []step{
+			{
+				expected: map[string]bencode.Datum{
+					"session": SESSION_ID,
+					"id":      EXEC_ID,
+					"op":      "eval",
+					"code":    "(read-line)",
+					"ns":      "user",
+				},
+				responses: []map[string]bencode.Datum{
+					{
+						"session": SESSION_ID,
+						"id":      EXEC_ID,
+						"status":  []bencode.Datum{"need-input"},
+					},
+				},
+			},
+			{
+				expected: map[string]bencode.Datum{
+					"session": SESSION_ID,
+					"op":      "stdin",
+					"stdin":   "foo\n",
+				},
+				responses: []map[string]bencode.Datum{
+					{
+						"session": SESSION_ID,
+						"status":  []bencode.Datum{"done"},
+					},
+					{
+						"session": SESSION_ID,
+						"id":      EXEC_ID,
+						"ns":      "user",
+						"value":   "\"foo\"",
+					},
+					{
+						"session": SESSION_ID,
+						"id":      EXEC_ID,
+						"status":  []bencode.Datum{"done"},
+					},
+				},
+			},
+		}
+		mock := setupMock(steps, false)
+		c, err := setupClient(mock)
+		assert.Nil(t, err)
+		ch := c.Eval("(read-line)")
+		go func() {
+			c.Stdin("foo\n")
+		}()
+		ret := <-ch
+		assert.Equal(t, "\"foo\"", ret)
+		assert.Equal(t, "user", c.CurrentNS())
+		assert.Nil(t, mock.HandledErr())
+		assert.Nil(t, mock.Outs())
+		assert.Nil(t, mock.Errs())
+		assert.Nil(t, c.Close())
+	})
 }
