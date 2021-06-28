@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/athos/trenchman/bencode"
 	"github.com/athos/trenchman/client"
@@ -207,62 +208,77 @@ func TestEval(t *testing.T) {
 			assert.Nil(t, c.Close())
 		})
 	}
-	t.Run("(read-line)", func(t *testing.T) {
-		steps := []step{
-			{
-				expected: map[string]bencode.Datum{
-					"session": SESSION_ID,
-					"id":      EXEC_ID,
-					"op":      "eval",
-					"code":    "(read-line)",
-					"ns":      "user",
-				},
-				responses: []map[string]bencode.Datum{
-					{
+}
+
+func TestStdin(t *testing.T) {
+	tests := []struct {
+		title string
+		sleep bool
+	}{
+		{"need-input arrives after stdin", false},
+		{"need-input arrives before stdin", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			steps := []step{
+				{
+					expected: map[string]bencode.Datum{
 						"session": SESSION_ID,
 						"id":      EXEC_ID,
-						"status":  []bencode.Datum{"need-input"},
-					},
-				},
-			},
-			{
-				expected: map[string]bencode.Datum{
-					"session": SESSION_ID,
-					"op":      "stdin",
-					"stdin":   "foo\n",
-				},
-				responses: []map[string]bencode.Datum{
-					{
-						"session": SESSION_ID,
-						"status":  []bencode.Datum{"done"},
-					},
-					{
-						"session": SESSION_ID,
-						"id":      EXEC_ID,
+						"op":      "eval",
+						"code":    "(read-line)",
 						"ns":      "user",
-						"value":   "\"foo\"",
 					},
-					{
-						"session": SESSION_ID,
-						"id":      EXEC_ID,
-						"status":  []bencode.Datum{"done"},
+					responses: []map[string]bencode.Datum{
+						{
+							"session": SESSION_ID,
+							"id":      EXEC_ID,
+							"status":  []bencode.Datum{"need-input"},
+						},
 					},
 				},
-			},
-		}
-		mock := setupMock(steps, false)
-		c, err := setupClient(mock)
-		assert.Nil(t, err)
-		ch := c.Eval("(read-line)")
-		go func() {
-			c.Stdin("foo\n")
-		}()
-		ret := <-ch
-		assert.Equal(t, "\"foo\"", ret)
-		assert.Equal(t, "user", c.CurrentNS())
-		assert.Nil(t, mock.HandledErr())
-		assert.Nil(t, mock.Outs())
-		assert.Nil(t, mock.Errs())
-		assert.Nil(t, c.Close())
-	})
+				{
+					expected: map[string]bencode.Datum{
+						"session": SESSION_ID,
+						"op":      "stdin",
+						"stdin":   "foo\n",
+					},
+					responses: []map[string]bencode.Datum{
+						{
+							"session": SESSION_ID,
+							"status":  []bencode.Datum{"done"},
+						},
+						{
+							"session": SESSION_ID,
+							"id":      EXEC_ID,
+							"ns":      "user",
+							"value":   "\"foo\"",
+						},
+						{
+							"session": SESSION_ID,
+							"id":      EXEC_ID,
+							"status":  []bencode.Datum{"done"},
+						},
+					},
+				},
+			}
+			mock := setupMock(steps, false)
+			c, err := setupClient(mock)
+			assert.Nil(t, err)
+			ch := c.Eval("(read-line)")
+			go func() {
+				if tt.sleep {
+					time.Sleep(50 * time.Millisecond)
+				}
+				c.Stdin("foo\n")
+			}()
+			ret := <-ch
+			assert.Equal(t, "\"foo\"", ret)
+			assert.Equal(t, "user", c.CurrentNS())
+			assert.Nil(t, mock.HandledErr())
+			assert.Nil(t, mock.Outs())
+			assert.Nil(t, mock.Errs())
+			assert.Nil(t, c.Close())
+		})
+	}
 }
