@@ -282,3 +282,33 @@ func TestStdin(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad(t *testing.T) {
+	steps := []step{
+		{
+			expected: map[string]bencode.Datum{
+				"op":        "load-file",
+				"ns":        "user",
+				"file":      "(println \"Hello, World!\")",
+				"file-name": "hello.clj",
+				"file-path": ".",
+			},
+			responses: []map[string]bencode.Datum{
+				{"out": "Hello, World!\n"},
+				{"ns": "user", "value": "nil"},
+				{"status": []bencode.Datum{"done"}},
+			},
+		},
+	}
+	mock := setupMock(steps, true)
+	c, err := setupClient(mock)
+	assert.Nil(t, err)
+	ch := c.Load("hello.clj", "(println \"Hello, World!\")")
+	ret := <-ch
+	assert.Equal(t, "nil", ret)
+	assert.Equal(t, "user", c.CurrentNS())
+	assert.Nil(t, mock.HandledErr())
+	assert.Equal(t, []string{"Hello, World!\n"}, mock.Outs())
+	assert.Nil(t, mock.Errs())
+	assert.Nil(t, c.Close())
+}
