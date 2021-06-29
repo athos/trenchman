@@ -85,6 +85,15 @@ func setupClient(mock *client.MockServer) (*Client, error) {
 	})
 }
 
+func TestSupportsOp(t *testing.T) {
+	mock := setupMock(nil, false)
+	c, err := setupClient(mock)
+	assert.Nil(t, err)
+	assert.True(t, c.SupportsOp("eval"))
+	assert.True(t, c.SupportsOp("load-file"))
+	assert.False(t, c.SupportsOp("no-such-op"))
+}
+
 func TestEval(t *testing.T) {
 	tests := []struct {
 		input  string
