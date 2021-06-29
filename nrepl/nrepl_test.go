@@ -52,6 +52,7 @@ func setupMock(steps []step, autoIdEnabled bool) *client.MockServer {
 				"ops": map[string]bencode.Datum{
 					"eval":      map[string]bencode.Datum{},
 					"load-file": map[string]bencode.Datum{},
+					"interrupt": map[string]bencode.Datum{},
 				},
 			}),
 		},
@@ -91,6 +92,7 @@ func TestSupportsOp(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, c.SupportsOp("eval"))
 	assert.True(t, c.SupportsOp("load-file"))
+	assert.True(t, c.SupportsOp("interrupt"))
 	assert.False(t, c.SupportsOp("no-such-op"))
 }
 
@@ -319,5 +321,65 @@ func TestLoad(t *testing.T) {
 	assert.Nil(t, mock.HandledErr())
 	assert.Equal(t, []string{"Hello, World!\n"}, mock.Outs())
 	assert.Nil(t, mock.Errs())
+	assert.Nil(t, c.Close())
+}
+
+func TestInterrupt(t *testing.T) {
+	steps := []step{
+		{
+			expected: map[string]bencode.Datum{
+				"session": SESSION_ID,
+				"id":      EXEC_ID,
+				"op":      "eval",
+				"code":    "(Thread/sleep 10000)",
+				"ns":      "user",
+			},
+			responses: nil,
+		},
+		{
+			expected: map[string]bencode.Datum{
+				"session":      SESSION_ID,
+				"op":           "interrupt",
+				"interrupt-id": EXEC_ID,
+			},
+			responses: []map[string]bencode.Datum{
+				{
+					"session": SESSION_ID,
+					"id":      EXEC_ID,
+					"err":     "Execution error (InterruptedException)\nsleep interrupted",
+				},
+				{
+					"session": SESSION_ID,
+					"id":      EXEC_ID,
+					"ex":      "class java.lang.InterruptedException",
+					"status":  []bencode.Datum{"eval-error"},
+				},
+				{
+					"session": SESSION_ID,
+					"id":      EXEC_ID,
+					"status":  []bencode.Datum{"done", "interrupted"},
+				},
+				{
+					"session": SESSION_ID,
+					"status":  []bencode.Datum{"done"},
+				},
+			},
+		},
+	}
+	mock := setupMock(steps, false)
+	c, err := setupClient(mock)
+	assert.Nil(t, err)
+	ch := c.Eval("(Thread/sleep 10000)")
+	c.Interrupt()
+	ret := <-ch
+	assert.Equal(t, client.NewRuntimeError("class java.lang.InterruptedException"), ret)
+	assert.Equal(t, "user", c.CurrentNS())
+	assert.Nil(t, mock.HandledErr())
+	assert.Nil(t, mock.Outs())
+	assert.Equal(
+		t,
+		[]string{"Execution error (InterruptedException)\nsleep interrupted"},
+		mock.Errs(),
+	)
 	assert.Nil(t, c.Close())
 }
