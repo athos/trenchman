@@ -31,7 +31,7 @@ func encode(datum bencode.Datum) string {
 }
 
 func setupMock(steps []step, autoIdEnabled bool) *client.MockServer {
-	res := make([]client.Step, 2, len(steps)+1)
+	res := make([]client.Step, 2, len(steps)+2)
 	res[0] = client.Step{
 		Expected: encode(map[string]bencode.Datum{
 			"op": "clone",
@@ -50,8 +50,8 @@ func setupMock(steps []step, autoIdEnabled bool) *client.MockServer {
 		Responses: []string{
 			encode(map[string]bencode.Datum{
 				"ops": map[string]bencode.Datum{
-					"eval":      true,
-					"load-file": true,
+					"eval":      map[string]bencode.Datum{},
+					"load-file": map[string]bencode.Datum{},
 				},
 			}),
 		},
