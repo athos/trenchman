@@ -100,3 +100,14 @@ func TestLineBuffer(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
+
+func TestReset(t *testing.T) {
+	t.Run("reset clears buffered content", func(t *testing.T) {
+		buf := new(lineBuffer)
+		buf.feedLine("(foo\n")
+		buf.feedLine(" bar\n")
+		assert.Equal(t, "(foo\n bar\n", buf.buf)
+		buf.reset()
+		assert.Equal(t, "", buf.buf)
+	})
+}
