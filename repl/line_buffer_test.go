@@ -89,4 +89,14 @@ func TestLineBuffer(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	}
+	t.Run("unbalanced brackets raise an error", func(t *testing.T) {
+		buf := new(lineBuffer)
+		_, _, err := buf.feedLine(")")
+		assert.NotNil(t, err)
+	})
+	t.Run("unmatched brackets raise an error", func(t *testing.T) {
+		buf := new(lineBuffer)
+		_, _, err := buf.feedLine("(]")
+		assert.NotNil(t, err)
+	})
 }
