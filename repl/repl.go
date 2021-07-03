@@ -97,7 +97,7 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 				switch err := res.(error); err {
 				case io.EOF, errInterrupted:
 				default:
-					panic(err)
+					r.HandleErr(err)
 				}
 			}
 		}
@@ -115,13 +115,13 @@ func (r *Repl) Load(filename string) {
 	} else {
 		file, err := os.Open(filename)
 		if err != nil {
-			panic(fmt.Errorf("cannot read file %s (%w)", filename, err))
+			r.HandleErr(fmt.Errorf("cannot read file %s (%w)", filename, err))
 		}
 		reader = bufio.NewReader(file)
 	}
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		panic(fmt.Errorf("cannot read file %s (%w)", filename, err))
+		r.HandleErr(fmt.Errorf("cannot read file %s (%w)", filename, err))
 	}
 	r.handleResults(r.client.Load(filename, string(content)))
 }
@@ -150,7 +150,7 @@ func (r *Repl) Start() {
 			case io.EOF:
 				return
 			default:
-				panic(res)
+				r.HandleErr(res)
 			}
 		case string:
 			s, cont, _ := r.lineBuffer.feedLine(res)
