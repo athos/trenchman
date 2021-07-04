@@ -47,8 +47,9 @@ func TestInterrupt(t *testing.T) {
 		go func() {
 			r.interrupt()
 		}()
-		err := <-ch
-		assert.Equal(t, errInterrupted, err)
+		res := <-ch
+		_, ok := res.(error)
+		assert.True(t, ok)
 		assert.Nil(t, r.Close())
 	})
 	t.Run("readLine after interruption successfully reads line", func(t *testing.T) {
@@ -59,8 +60,9 @@ func TestInterrupt(t *testing.T) {
 			r.interrupt()
 			b.WriteString("hello\n")
 		}()
-		err := <-ch
-		assert.Equal(t, errInterrupted, err)
+		res := <-ch
+		_, ok := res.(error)
+		assert.True(t, ok)
 		ch = r.readLine()
 		line := <-ch
 		assert.Equal(t, "hello\n", line)
