@@ -99,7 +99,7 @@ func (conn *Conn) initSession() (ret *SessionInfo, err error) {
 	}
 	resp = response.(Response)
 	ops := map[string]struct{}{}
-	for k, _ := range resp["ops"].(map[string]bencode.Datum) {
+	for k := range resp["ops"].(map[string]bencode.Datum) {
 		ops[k] = struct{}{}
 	}
 	ret = &SessionInfo{

@@ -70,7 +70,7 @@ func nReplFactory(host string, port int) func(client.OutputHandler, client.Error
 			Host:          host,
 			Port:          port,
 			OutputHandler: outHandler,
-			ErrorHandler: errHandler,
+			ErrorHandler:  errHandler,
 		})
 		if err != nil {
 			panic(err)
@@ -82,10 +82,10 @@ func nReplFactory(host string, port int) func(client.OutputHandler, client.Error
 func pReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) client.Client {
 	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) client.Client {
 		c, err := prepl.NewClient(&prepl.Opts{
-			Host:      host,
-			Port:      port,
+			Host:          host,
+			Port:          port,
 			OutputHandler: outHandler,
-			ErrorHandler: errHandler,
+			ErrorHandler:  errHandler,
 		})
 		if err != nil {
 			panic(err)

@@ -11,7 +11,7 @@ import (
 func setupMock(steps []client.Step) *client.MockServer {
 	s := make([]client.Step, 1, len(steps)+1)
 	s[0] = client.Step{
-		Expected: "(set! *print-namespace-maps* false)",
+		Expected:  "(set! *print-namespace-maps* false)",
 		Responses: []string{`{:tag :ret, :val "nil"}`},
 	}
 	s = append(s, steps...)
@@ -40,7 +40,7 @@ func TestEval(t *testing.T) {
 		{
 			"(+ 1 2)",
 			client.Step{
-				Expected: "(do (+ 1 2))",
+				Expected:  "(do (+ 1 2))",
 				Responses: []string{`{:tag :ret, :val "3", :ns "user"}`},
 			},
 			"user",
@@ -51,7 +51,7 @@ func TestEval(t *testing.T) {
 		{
 			"(ns foo)",
 			client.Step{
-				Expected: "(do (ns foo))",
+				Expected:  "(do (ns foo))",
 				Responses: []string{`{:tag :ret, :val "nil", :ns "foo"}`},
 			},
 			"foo",
@@ -121,7 +121,7 @@ func TestEval(t *testing.T) {
 	t.Run("(read-line)", func(t *testing.T) {
 		steps := []client.Step{
 			{
-				Expected: "(do (read-line))",
+				Expected:  "(do (read-line))",
 				Responses: nil,
 			},
 			{
