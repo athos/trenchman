@@ -85,7 +85,7 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 			}
 			if s, ok := res.(string); ok {
 				if !r.hidesNil || s != "nil" {
-					r.printer.With(color.FgGreen).Fprintln(r.out, s)
+					r.printer.Fprintln(r.out, s)
 				}
 			} else if _, ok := res.(*client.RuntimeError); !ok {
 				panic("unexpected result received")
@@ -131,9 +131,9 @@ func (r *Repl) Start() {
 	for {
 		if continued {
 			prompt := strings.Repeat(" ", len(r.client.CurrentNS())-2) + "#_=> "
-			fmt.Fprint(r.out, prompt)
+			r.printer.With(color.FgGreen).Fprint(r.out, prompt)
 		} else {
-			fmt.Fprintf(r.out, "%s=> ", r.client.CurrentNS())
+			r.printer.With(color.FgGreen).Fprintf(r.out, "%s=> ", r.client.CurrentNS())
 		}
 		res := <-r.in.readLine()
 		switch res := res.(type) {
