@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 	"testing"
 
 	"github.com/athos/trenchman/client"
@@ -33,15 +32,15 @@ func (c *mockClient) SupportsOp(op string) bool {
 }
 
 func (c *mockClient) Eval(code string) <-chan client.EvalResult {
-	if code == c.step.expected {
-		ch := make(chan client.EvalResult)
-		go func() {
-			c.step.action(ch)
-			close(ch)
-		}()
-		return ch
+	if code != c.step.expected {
+		panic(fmt.Errorf("%s expected, but got %s", c.step.expected, code))
 	}
-	panic(fmt.Errorf("%s expected, but got %s", c.step.expected, code))
+	ch := make(chan client.EvalResult)
+	go func() {
+		c.step.action(ch)
+		close(ch)
+	}()
+	return ch
 }
 
 func (c *mockClient) Load(filename string, content string) <-chan client.EvalResult {
@@ -69,23 +68,19 @@ func newMockClient(step step) *mockClient {
 }
 
 type mockReader struct {
-	r  io.Reader
-	ch chan struct{}
+	ch chan string
 }
 
-func newMockReader(input string) *mockReader {
-	return &mockReader{
-		r:  strings.NewReader(input),
-		ch: make(chan struct{}),
-	}
+func newMockReader(ch chan string) *mockReader {
+	return &mockReader{ch}
 }
 
 func (r *mockReader) Read(bytes []byte) (int, error) {
-	n, err := r.r.Read(bytes)
-	if err == io.EOF {
-		<-r.ch
+	s, ok := <-r.ch
+	if !ok {
+		return 0, io.EOF
 	}
-	return n, err
+	return copy(bytes, []byte(s)), nil
 }
 
 func (r *mockReader) Close() error {
@@ -108,6 +103,7 @@ func TestRepl(t *testing.T) {
 	var repl *Repl
 	var c *mockClient
 	var r *mockReader
+	var inputCh chan string
 	tests := []struct {
 		input string
 		step  step
@@ -134,7 +130,7 @@ func TestRepl(t *testing.T) {
 		},
 		{
 			":repl/quit\n",
-			step{},
+			nil,
 			"user=> ",
 			"",
 		},
@@ -170,7 +166,9 @@ func TestRepl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			r = newMockReader(tt.input)
+			inputCh = make(chan string, 1)
+			inputCh <- tt.input
+			r = newMockReader(inputCh)
 			c = newMockClient(tt.step)
 			repl = setupRepl(r, c)
 			repl.Start()
