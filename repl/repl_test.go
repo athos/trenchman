@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/athos/trenchman/client"
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,7 @@ import (
 type (
 	mockClient struct {
 		step step
+		ins  []string
 		outs *bytes.Buffer
 		errs *bytes.Buffer
 	}
@@ -48,7 +50,7 @@ func (c *mockClient) Load(filename string, content string) <-chan client.EvalRes
 }
 
 func (c *mockClient) Stdin(input string) {
-
+	c.ins = append(c.ins, input)
 }
 
 func (c *mockClient) Interrupt() {
@@ -107,6 +109,7 @@ func TestRepl(t *testing.T) {
 	tests := []struct {
 		input string
 		step  step
+		ins   []string
 		outs  string
 		errs  string
 	}{
@@ -116,6 +119,7 @@ func TestRepl(t *testing.T) {
 				ch <- "3"
 				r.Close()
 			}},
+			nil,
 			"user=> 3\nuser=> ",
 			"",
 		},
@@ -125,11 +129,13 @@ func TestRepl(t *testing.T) {
 				ch <- "42"
 				r.Close()
 			}},
+			nil,
 			"user=> user=> 42\nuser=> ",
 			"",
 		},
 		{
 			":repl/quit\n",
+			step{},
 			nil,
 			"user=> ",
 			"",
@@ -140,7 +146,21 @@ func TestRepl(t *testing.T) {
 				ch <- "[1 2 3]"
 				r.Close()
 			}},
+			nil,
 			"user=>   #_=>   #_=> [1 2 3]\nuser=> ",
+			"",
+		},
+		{
+			"(read-line)\n",
+			step{"(read-line)", func(ch chan<- client.EvalResult) {
+				inputCh <- "foo\n"
+				//FIXME: this is a hack to make the test pass
+				time.Sleep(100 * time.Millisecond)
+				ch <- "foo"
+				r.Close()
+			}},
+			[]string{"foo\n"},
+			"user=> foo\nuser=> ",
 			"",
 		},
 		{
@@ -150,6 +170,7 @@ func TestRepl(t *testing.T) {
 				ch <- "nil"
 				r.Close()
 			}},
+			nil,
 			"user=> Hello, World!\nnil\nuser=> ",
 			"",
 		},
@@ -160,6 +181,7 @@ func TestRepl(t *testing.T) {
 				ch <- client.NewRuntimeError("divide by zero")
 				r.Close()
 			}},
+			nil,
 			"user=> user=> ",
 			"divide by zero\n",
 		},
@@ -172,6 +194,7 @@ func TestRepl(t *testing.T) {
 			c = newMockClient(tt.step)
 			repl = setupRepl(r, c)
 			repl.Start()
+			assert.Equal(t, tt.ins, c.ins)
 			assert.Equal(t, tt.outs, c.outs.String())
 			assert.Equal(t, tt.errs, c.errs.String())
 			repl.Close()
