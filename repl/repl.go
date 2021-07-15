@@ -85,7 +85,7 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 			}
 			if s, ok := res.(string); ok {
 				if !r.hidesNil || s != "nil" {
-					r.printer.Fprintln(r.out, s)
+					fmt.Fprintln(r.out, s)
 				}
 			} else if _, ok := res.(*client.RuntimeError); !ok {
 				panic("unexpected result received")
