@@ -126,6 +126,11 @@ func (r *Repl) Load(filename string) {
 	r.handleResults(r.client.Load(filename, string(content)))
 }
 
+func (r *Repl) Interrupt() {
+	r.client.Interrupt()
+	r.in.interrupt()
+}
+
 func (r *Repl) Start() {
 	continued := false
 	for {
@@ -176,8 +181,7 @@ func (r *Repl) StartWatchingInterruption() {
 	go func() {
 		for {
 			<-interrupt
-			r.client.Interrupt()
-			r.in.interrupt()
+			r.Interrupt()
 		}
 	}()
 }

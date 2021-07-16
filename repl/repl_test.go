@@ -13,10 +13,11 @@ import (
 
 type (
 	mockClient struct {
-		step step
-		ins  []string
-		outs *bytes.Buffer
-		errs *bytes.Buffer
+		step        step
+		ins         []string
+		outs        *bytes.Buffer
+		errs        *bytes.Buffer
+		interrupted bool
 	}
 
 	step struct {
@@ -54,7 +55,7 @@ func (c *mockClient) Stdin(input string) {
 }
 
 func (c *mockClient) Interrupt() {
-
+	c.interrupted = true
 }
 
 func (c *mockClient) Close() error {
@@ -197,7 +198,30 @@ func TestRepl(t *testing.T) {
 			assert.Equal(t, tt.ins, c.ins)
 			assert.Equal(t, tt.outs, c.outs.String())
 			assert.Equal(t, tt.errs, c.errs.String())
+			assert.False(t, c.interrupted)
 			repl.Close()
 		})
 	}
+}
+
+func TestReplInterrupt(t *testing.T) {
+	var repl *Repl
+	inputCh := make(chan string, 1)
+	inputCh <- "(read-line)\n"
+	r := newMockReader(inputCh)
+	c := newMockClient(step{
+		"(read-line)",
+		func(ch chan<- client.EvalResult) {
+			repl.Interrupt()
+			repl.Err("Interrupted\n")
+			r.Close()
+		},
+	})
+	repl = setupRepl(r, c)
+	repl.Start()
+	assert.Nil(t, c.ins)
+	assert.Equal(t, "user=> user=> ", c.outs.String())
+	assert.Equal(t, "Interrupted\n", c.errs.String())
+	assert.True(t, c.interrupted)
+	repl.Close()
 }
