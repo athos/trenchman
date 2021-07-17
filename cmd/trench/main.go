@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alecthomas/kong"
 	"github.com/athos/trenchman/client"
 	"github.com/athos/trenchman/nrepl"
 	"github.com/athos/trenchman/prepl"
 	"github.com/athos/trenchman/repl"
 	"github.com/mattn/go-isatty"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var version = "v0.0.0"
@@ -23,16 +23,24 @@ const (
 	COLOR_ALWAYS = "always"
 )
 
-var args struct {
-	Host        string `name:"host" help:"Connect to the specified host." default:"127.0.0.1"`
-	Port        int    `name:"port" short:"p" placeholder:"<port>" help:"Connect to the specified port."`
-	Eval        string `name:"eval" short:"e" group:"Evaluation" placeholder:"<expr>" help:"Evaluate an expression."`
-	File        string `name:"file" short:"f" group:"Evaluation" placeholder:"<path>" help:"Evaluate a file."`
-	MainNS      string `name:"main" short:"m" group:"Evaluation" placeholder:"<ns>" help:"Call the -main function for a namespace."`
-	ColorOption string `name:"color" short:"c" enum:"always,auto,none" default:"auto" placeholder:"<when>" help:"When to use colors. Possible values: always, auto, none. Defaults to auto."`
-	Protocol    string `name:"protocol" short:"P" enum:"n,nrepl,p,prepl" default:"nrepl" help:"Use specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl."`
-	Location    string `short:"L" help:"Connect to the specified URL (e.g. prepl://127.0.0.1:5555)"`
-	Version     bool   `name:"version" short:"v" help:"Print the current version of Trenchman."`
+var args = struct {
+	host        *string
+	port        *int
+	eval        *string
+	file        *string
+	mainNS      *string
+	colorOption *string
+	protocol    *string
+	location    *string
+}{
+	host:        kingpin.Flag("host", "Connect to the specified host. Defaults to 127.0.0.1.").PlaceHolder("HOST").Default("127.0.0.1").String(),
+	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
+	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').String(),
+	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
+	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').String(),
+	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('c').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
+	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Short('P').Enum("n", "nrepl", "p", "prepl"),
+	location:    kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Short('L').String(),
 }
 
 var urlRegex = regexp.MustCompile(`(nrepl|prepl)://([^:]*):(\d+)`)
@@ -109,15 +117,12 @@ func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Re
 }
 
 func main() {
-	kong.Parse(&args)
-	if args.Version {
-		fmt.Printf("Trenchman %s\n", version)
-		os.Exit(0)
-	}
+	kingpin.Version(version)
+	kingpin.Parse()
 
 	var protocol, host string
 	var port int
-	loc := args.Location
+	loc := *args.location
 	if loc != "" {
 		match := urlRegex.FindStringSubmatch(loc)
 		if match == nil {
@@ -127,14 +132,14 @@ func main() {
 		host = match[2]
 		port, _ = strconv.Atoi(match[3])
 	}
-	if protocol == "" && args.Protocol != "" {
-		protocol = args.Protocol
+	if protocol == "" && *args.protocol != "" {
+		protocol = *args.protocol
 	}
-	if host == "" && args.Host != "" {
-		host = args.Host
+	if host == "" && *args.host != "" {
+		host = *args.host
 	}
-	if port == 0 && args.Port != 0 {
-		port = args.Port
+	if port == 0 && *args.port != 0 {
+		port = *args.port
 	}
 	if protocol == "nrepl" && port == 0 {
 		p, err := detectNreplPort(".nrepl-port")
@@ -143,11 +148,11 @@ func main() {
 		}
 		port = p
 	}
-	filename := strings.TrimSpace(args.File)
-	mainNS := strings.TrimSpace(args.MainNS)
-	code := strings.TrimSpace(args.Eval)
+	filename := strings.TrimSpace(*args.file)
+	mainNS := strings.TrimSpace(*args.mainNS)
+	code := strings.TrimSpace(*args.eval)
 	opts := &repl.Opts{
-		Printer:  repl.NewPrinter(colorized(args.ColorOption)),
+		Printer:  repl.NewPrinter(colorized(*args.colorOption)),
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
 	repl := setupRepl(protocol, host, port, opts)
