@@ -96,12 +96,8 @@ func (d *Decoder) decodeString() (ret string, err error) {
 		return
 	}
 	bs := make([]byte, n)
-	m, err := d.reader.Read(bs)
-	if err != nil {
+	if _, err = io.ReadFull(d.reader, bs); err != nil {
 		return
-	}
-	if m != n {
-		return ret, io.ErrUnexpectedEOF
 	}
 	return string(bs), nil
 }
