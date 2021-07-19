@@ -39,7 +39,7 @@ var args = struct {
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('c').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
-	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Short('P').Enum("n", "nrepl", "p", "prepl"),
+	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
 	location:    kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Short('L').String(),
 }
 
