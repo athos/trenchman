@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -32,6 +33,7 @@ var args = struct {
 	colorOption *string
 	protocol    *string
 	location    *string
+	portfile    *string
 }{
 	host:        kingpin.Flag("host", "Connect to the specified host. Defaults to 127.0.0.1.").PlaceHolder("HOST").Default("127.0.0.1").String(),
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
@@ -41,13 +43,27 @@ var args = struct {
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('c').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
 	location:    kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Short('L').String(),
+	portfile:    kingpin.Flag("port-file", "").String(),
 }
 
 var urlRegex = regexp.MustCompile(`(nrepl|prepl)://([^:]*):(\d+)`)
 
-func detectNreplPort(portFile string) (int, error) {
-	content, err := os.ReadFile(portFile)
+var portfileNotSpecified = errors.New("port file not specified")
+
+func readPortFromFile(protocol, portFile string) (int, error) {
+	filename := portFile
+	if portFile == "" {
+		if protocol == "nrepl" {
+			filename = ".nrepl-port"
+		} else {
+			filename = ".prepl-port"
+		}
+	}
+	content, err := os.ReadFile(filename)
 	if err != nil {
+		if portFile == "" {
+			return 0, portfileNotSpecified
+		}
 		return 0, err
 	}
 	port, err := strconv.Atoi(string(content))
@@ -107,10 +123,9 @@ func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Re
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
 	var factory func(client.OutputHandler, client.ErrorHandler) client.Client
-	switch protocol {
-	case "n", "nrepl":
+	if protocol == "nrepl" {
 		factory = nReplFactory(host, port)
-	case "p", "prepl":
+	} else {
 		factory = pReplFactory(host, port)
 	}
 	return repl.NewRepl(opts, factory)
@@ -132,8 +147,13 @@ func main() {
 		host = match[2]
 		port, _ = strconv.Atoi(match[3])
 	}
-	if protocol == "" && *args.protocol != "" {
-		protocol = *args.protocol
+	if protocol == "" {
+		switch *args.protocol {
+		case "n", "nrepl":
+			protocol = "nrepl"
+		case "p", "prepl":
+			protocol = "prepl"
+		}
 	}
 	if host == "" && *args.host != "" {
 		host = *args.host
@@ -141,10 +161,15 @@ func main() {
 	if port == 0 && *args.port != 0 {
 		port = *args.port
 	}
-	if protocol == "nrepl" && port == 0 {
-		p, err := detectNreplPort(".nrepl-port")
+	if port == 0 {
+		p, err := readPortFromFile(protocol, *args.portfile)
 		if err != nil {
-			panic(fmt.Errorf("cannot read .nrepl-port (%w)", err))
+			errmsg := "Port must be specified with -p or -L"
+			if err != portfileNotSpecified {
+				errmsg = fmt.Sprintf("Could not read port file (%s)", *args.portfile)
+			}
+			fmt.Fprintln(os.Stderr, errmsg)
+			os.Exit(1)
 		}
 		port = p
 	}
