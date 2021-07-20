@@ -250,10 +250,10 @@ func exString(td *TriageData) string {
 	return ""
 }
 
-func errorMessage(payload string) string {
+func errorMessage(payload string) (string, error) {
 	var ex Exception
 	if err := edn.UnmarshalString(payload, &ex); err != nil {
-		panic("failed to parse exception data: " + err.Error())
+		return "", fmt.Errorf("failed to parse exception data (%w)", err)
 	}
-	return exString(exTriage(&ex))
+	return exString(exTriage(&ex)), nil
 }
