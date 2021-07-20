@@ -107,7 +107,7 @@ func (c *Client) HandleResp(response client.Response) {
 		c.outputHandler.Err(resp.Val)
 	case ":tap":
 	default:
-		panic(fmt.Errorf("unknown response: %v", resp.Tag))
+		c.HandleErr(fmt.Errorf("unknown type of response received: %v", resp.Tag))
 	}
 }
 
