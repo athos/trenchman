@@ -128,8 +128,8 @@ func (c *Client) HandleResp(response client.Response) {
 		c.outputHandler.Out(resp["out"].(string))
 	case has(resp, "err"):
 		c.outputHandler.Err(resp["err"].(string))
-	default:
-		c.HandleErr(fmt.Errorf("unknown response returned: %v", resp))
+	// default:
+	// 	c.HandleErr(fmt.Errorf("unknown response returned: %v", resp))
 	}
 	if has(resp, "status") {
 		c.handleStatusUpdate(resp)
