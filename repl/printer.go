@@ -45,7 +45,10 @@ func NewColorPrinter() ColorPrinter {
 }
 
 func (p ColorPrinter) With(attr ...color.Attribute) Printer {
-	return ColorPrinter{p.Add(attr...)}
+	//FIXME: current implementation does not inherit attrs from parent
+	newPrinter := NewColorPrinter()
+	newPrinter.Add(attr...)
+	return newPrinter
 }
 
 func NewPrinter(colorEnabled bool) Printer {
