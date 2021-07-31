@@ -27,23 +27,23 @@ const (
 var args = struct {
 	host        *string
 	port        *int
+	portfile    *string
 	eval        *string
 	file        *string
 	mainNS      *string
 	colorOption *string
 	protocol    *string
 	location    *string
-	portfile    *string
 }{
 	host:        kingpin.Flag("host", "Connect to the specified host. Defaults to 127.0.0.1.").PlaceHolder("HOST").Default("127.0.0.1").String(),
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
+	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").String(),
 	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').String(),
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('c').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
 	location:    kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Short('L').String(),
-	portfile:    kingpin.Flag("port-file", "").String(),
 }
 
 var urlRegex = regexp.MustCompile(`(nrepl|prepl)://([^:]*):(\d+)`)
