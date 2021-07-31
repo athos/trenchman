@@ -6,7 +6,11 @@ Trenchman is a standalone nREPL/pREPL client written in Go, heavily inspired by 
 
 ## Installation
 
-(TODO)
+If you have the Go tool chain installed, you can build and install Trenchman by the following command:
+
+```sh
+$ go install github.com/athos/trenchman/cmd/trench@latest
+```
 
 ## Usage
 
