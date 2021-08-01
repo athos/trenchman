@@ -18,6 +18,8 @@ If you have the Go tool chain installed, you can build and install Trenchman by 
 $ go install github.com/athos/trenchman/cmd/trench@latest
 ```
 
+Trenchman does not have readline support at this time. If you want to use features like line editing or command history, we recommend using [`rlwrap`](https://github.com/hanslub42/rlwrap) together with Trenchman.
+
 ## Usage
 
 (TODO)
