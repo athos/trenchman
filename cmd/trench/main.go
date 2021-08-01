@@ -25,7 +25,6 @@ const (
 )
 
 var args = struct {
-	host        *string
 	port        *int
 	portfile    *string
 	protocol    *string
@@ -35,7 +34,6 @@ var args = struct {
 	mainNS      *string
 	colorOption *string
 }{
-	host:        kingpin.Flag("host", "Connect to the specified host. Defaults to 127.0.0.1.").PlaceHolder("HOST").Default("127.0.0.1").String(),
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").String(),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
@@ -156,9 +154,6 @@ func main() {
 		case "p", "prepl":
 			protocol = "prepl"
 		}
-	}
-	if host == "" && *args.host != "" {
-		host = *args.host
 	}
 	if port == 0 && *args.port != 0 {
 		port = *args.port
