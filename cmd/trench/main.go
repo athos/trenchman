@@ -86,6 +86,11 @@ func colorized(colorOption string) bool {
 	return false
 }
 
+func fatal(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, args...)
+	os.Exit(1)
+}
+
 func nReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) client.Client {
 	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
@@ -95,7 +100,7 @@ func nReplFactory(host string, port int) func(client.OutputHandler, client.Error
 			ErrorHandler:  errHandler,
 		})
 		if err != nil {
-			panic(err)
+			fatal(err.Error() + "\n")
 		}
 		return c
 	}
@@ -110,7 +115,7 @@ func pReplFactory(host string, port int) func(client.OutputHandler, client.Error
 			ErrorHandler:  errHandler,
 		})
 		if err != nil {
-			panic(err)
+			fatal(err.Error() + "\n")
 		}
 		return c
 	}
@@ -139,7 +144,7 @@ func main() {
 	if loc != "" {
 		match := urlRegex.FindStringSubmatch(loc)
 		if match == nil {
-			panic("bad url specified to -c option: " + loc)
+			fatal("bad url specified to -c option: " + loc)
 		}
 		protocol = match[1]
 		host = match[2]
@@ -165,8 +170,7 @@ func main() {
 			if err != portfileNotSpecified {
 				errmsg = fmt.Sprintf("Could not read port file (%s)", *args.portfile)
 			}
-			fmt.Fprintln(os.Stderr, errmsg)
-			os.Exit(1)
+			fatal(errmsg + "\n")
 		}
 		port = p
 	}
