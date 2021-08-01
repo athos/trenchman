@@ -46,7 +46,7 @@ var args = struct {
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
 }
 
-var urlRegex = regexp.MustCompile(`(nrepl|prepl)://([^:]*):(\d+)`)
+var urlRegex = regexp.MustCompile(`(?:(nrepl|prepl)://)?([^:]+)(?::(\d+))?`)
 
 var portfileNotSpecified = errors.New("port file not specified")
 
@@ -145,7 +145,9 @@ func main() {
 		}
 		protocol = match[1]
 		host = match[2]
-		port, _ = strconv.Atoi(match[3])
+		if match[3] != "" {
+			port, _ = strconv.Atoi(match[3])
+		}
 	}
 	if protocol == "" {
 		switch *args.protocol {
