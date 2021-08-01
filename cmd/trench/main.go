@@ -141,7 +141,7 @@ func main() {
 	if loc != "" {
 		match := urlRegex.FindStringSubmatch(loc)
 		if match == nil {
-			panic("bad url specified to -L option: " + loc)
+			panic("bad url specified to -c option: " + loc)
 		}
 		protocol = match[1]
 		host = match[2]
@@ -164,7 +164,7 @@ func main() {
 	if port == 0 {
 		p, err := readPortFromFile(protocol, *args.portfile)
 		if err != nil {
-			errmsg := "Port must be specified with -p or -L"
+			errmsg := "Port must be specified with -p or -c"
 			if err != portfileNotSpecified {
 				errmsg = fmt.Sprintf("Could not read port file (%s)", *args.portfile)
 			}
