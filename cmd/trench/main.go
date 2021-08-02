@@ -37,7 +37,7 @@ var args = struct {
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").PlaceHolder("FILE").String(),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
-	location:    kingpin.Flag("connect", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Default("localhost").Short('c').PlaceHolder("URL").String(),
+	location:    kingpin.Flag("connect", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Default("127.0.0.1").Short('c').PlaceHolder("URL").String(),
 	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').PlaceHolder("EXPR").String(),
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
