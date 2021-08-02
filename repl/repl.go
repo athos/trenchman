@@ -67,13 +67,15 @@ func (r *Repl) Err(s string) {
 }
 
 func (r *Repl) HandleErr(err error) {
+	var errmsg string
 	switch err {
 	case client.ErrDisconnected:
-		r.printer.With(color.FgRed).Fprintln(r.err, "Disconnected from server")
-		os.Exit(1)
+		errmsg = "Disconnected from server"
 	default:
-		panic(err)
+		errmsg = err.Error()
 	}
+	r.printer.With(color.FgRed).Fprintln(r.err, errmsg)
+	os.Exit(1)
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {
@@ -115,13 +117,13 @@ func (r *Repl) Load(filename string) {
 	} else {
 		file, err := os.Open(filename)
 		if err != nil {
-			r.HandleErr(fmt.Errorf("cannot read file %s (%w)", filename, err))
+			r.HandleErr(err)
 		}
 		reader = bufio.NewReader(file)
 	}
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		r.HandleErr(fmt.Errorf("cannot read file %s (%w)", filename, err))
+		r.HandleErr(err)
 	}
 	r.handleResults(r.client.Load(filename, string(content)))
 }
