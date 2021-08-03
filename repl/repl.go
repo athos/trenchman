@@ -32,8 +32,8 @@ type Opts struct {
 
 func NewRepl(
 	opts *Opts,
-	factory func(client.OutputHandler, client.ErrorHandler) client.Client,
-) *Repl {
+	factory func(client.OutputHandler, client.ErrorHandler) (client.Client, error),
+) (*Repl, error) {
 	repl := &Repl{
 		in:         newReader(opts.In),
 		out:        opts.Out,
@@ -42,9 +42,12 @@ func NewRepl(
 		lineBuffer: &lineBuffer{},
 		hidesNil:   opts.HidesNil,
 	}
-	client := factory(repl, repl)
+	client, err := factory(repl, repl)
+	if err != nil {
+		return nil, err
+	}
 	repl.client = client
-	return repl
+	return repl, nil
 }
 
 func (r *Repl) Close() error {

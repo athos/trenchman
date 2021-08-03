@@ -12,6 +12,7 @@ import (
 	"github.com/athos/trenchman/nrepl"
 	"github.com/athos/trenchman/prepl"
 	"github.com/athos/trenchman/repl"
+	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -88,13 +89,8 @@ func colorized(colorOption string) bool {
 	return false
 }
 
-func fatal(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, args...)
-	os.Exit(1)
-}
-
-func nReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) client.Client {
-	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) client.Client {
+func nReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) (client.Client, error) {
+	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) (client.Client, error) {
 		c, err := nrepl.NewClient(&nrepl.Opts{
 			Host:          host,
 			Port:          port,
@@ -102,14 +98,14 @@ func nReplFactory(host string, port int) func(client.OutputHandler, client.Error
 			ErrorHandler:  errHandler,
 		})
 		if err != nil {
-			fatal(err.Error() + "\n")
+			return nil, err
 		}
-		return c
+		return c, nil
 	}
 }
 
-func pReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) client.Client {
-	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) client.Client {
+func pReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) (client.Client, error) {
+	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) (client.Client, error) {
 		c, err := prepl.NewClient(&prepl.Opts{
 			Host:          host,
 			Port:          port,
@@ -117,17 +113,17 @@ func pReplFactory(host string, port int) func(client.OutputHandler, client.Error
 			ErrorHandler:  errHandler,
 		})
 		if err != nil {
-			fatal(err.Error() + "\n")
+			return nil, err
 		}
-		return c
+		return c, nil
 	}
 }
 
-func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Repl {
+func setupRepl(protocol string, host string, port int, opts *repl.Opts) (*repl.Repl, error) {
 	opts.In = os.Stdin
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
-	var factory func(client.OutputHandler, client.ErrorHandler) client.Client
+	var factory func(client.OutputHandler, client.ErrorHandler) (client.Client, error)
 	if protocol == "nrepl" {
 		factory = nReplFactory(host, port)
 	} else {
@@ -179,18 +175,26 @@ func main() {
 	kingpin.Version(version)
 	kingpin.Parse()
 
+	printer := repl.NewPrinter(colorized(*args.colorOption))
+	fatal := func(err error) {
+		printer.With(color.FgRed).Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
 	protocol, host, port, err := arbitrateServer(&args)
 	if err != nil {
-		fatal(err.Error() + "\n")
+		fatal(err)
 	}
 	filename := strings.TrimSpace(*args.file)
 	mainNS := strings.TrimSpace(*args.mainNS)
 	code := strings.TrimSpace(*args.eval)
 	opts := &repl.Opts{
-		Printer:  repl.NewPrinter(colorized(*args.colorOption)),
+		Printer:  printer,
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl := setupRepl(protocol, host, port, opts)
+	repl, err := setupRepl(protocol, host, port, opts)
+	if err != nil {
+		fatal(err)
+	}
 	defer repl.Close()
 
 	if filename != "" {
