@@ -28,7 +28,7 @@ var args = struct {
 	port        *int
 	portfile    *string
 	protocol    *string
-	location    *string
+	server      *string
 	eval        *string
 	file        *string
 	mainNS      *string
@@ -37,7 +37,7 @@ var args = struct {
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").PlaceHolder("FILE").String(),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
-	location:    kingpin.Flag("connect", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Default("127.0.0.1").Short('c').PlaceHolder("URL").String(),
+	server:      kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Default("127.0.0.1").Short('s').PlaceHolder("[(nrepl|prepl)://]host[:port]").String(),
 	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').PlaceHolder("EXPR").String(),
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
@@ -140,11 +140,11 @@ func main() {
 
 	var protocol, host string
 	var port int
-	loc := *args.location
-	if loc != "" {
-		match := urlRegex.FindStringSubmatch(loc)
+	server := *args.server
+	if server != "" {
+		match := urlRegex.FindStringSubmatch(server)
 		if match == nil {
-			fatal("bad url specified to -c option: " + loc)
+			fatal("bad url specified to -s option: " + server)
 		}
 		protocol = match[1]
 		host = match[2]
@@ -166,7 +166,7 @@ func main() {
 	if port == 0 {
 		p, err := readPortFromFile(protocol, *args.portfile)
 		if err != nil {
-			errmsg := "Port must be specified with -p or -c"
+			errmsg := "Port must be specified with -p or -s"
 			if err != portfileNotSpecified {
 				errmsg = fmt.Sprintf("Could not read port file (%s)", *args.portfile)
 			}
