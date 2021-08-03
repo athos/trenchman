@@ -24,7 +24,7 @@ const (
 	COLOR_ALWAYS = "always"
 )
 
-var args = struct {
+type cmdArgs struct {
 	port        *int
 	portfile    *string
 	protocol    *string
@@ -33,7 +33,9 @@ var args = struct {
 	file        *string
 	mainNS      *string
 	colorOption *string
-}{
+}
+
+var args = cmdArgs{
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").PlaceHolder("FILE").String(),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
@@ -134,17 +136,13 @@ func setupRepl(protocol string, host string, port int, opts *repl.Opts) *repl.Re
 	return repl.NewRepl(opts, factory)
 }
 
-func main() {
-	kingpin.Version(version)
-	kingpin.Parse()
-
-	var protocol, host string
-	var port int
+func arbitrateServer(args *cmdArgs) (protocol string, host string, port int, err error) {
 	server := *args.server
 	if server != "" {
 		match := urlRegex.FindStringSubmatch(server)
 		if match == nil {
-			fatal("bad url specified to -s option: " + server)
+			err = errors.New("bad url specified to -s option: " + server)
+			return
 		}
 		protocol = match[1]
 		host = match[2]
@@ -164,15 +162,26 @@ func main() {
 		port = *args.port
 	}
 	if port == 0 {
-		p, err := readPortFromFile(protocol, *args.portfile)
+		port, err = readPortFromFile(protocol, *args.portfile)
 		if err != nil {
-			errmsg := "Port must be specified with -p or -s"
 			if err != portfileNotSpecified {
-				errmsg = fmt.Sprintf("Could not read port file (%s)", *args.portfile)
+				err = fmt.Errorf("could not read port file: %s", *args.portfile)
+			} else {
+				err = errors.New("port must be specified with -p or -s")
 			}
-			fatal(errmsg + "\n")
+			return
 		}
-		port = p
+	}
+	return
+}
+
+func main() {
+	kingpin.Version(version)
+	kingpin.Parse()
+
+	protocol, host, port, err := arbitrateServer(&args)
+	if err != nil {
+		fatal(err.Error() + "\n")
 	}
 	filename := strings.TrimSpace(*args.file)
 	mainNS := strings.TrimSpace(*args.mainNS)
