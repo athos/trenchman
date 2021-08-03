@@ -58,12 +58,14 @@ func TestInterrupt(t *testing.T) {
 		ch := r.readLine()
 		go func() {
 			r.interrupt()
-			b.WriteString("hello\n")
 		}()
 		res := <-ch
 		_, ok := res.(error)
 		assert.True(t, ok)
 		ch = r.readLine()
+		go func() {
+			b.WriteString("hello\n")
+		}()
 		line := <-ch
 		assert.Equal(t, "hello\n", line)
 		assert.Nil(t, r.Close())
