@@ -18,36 +18,36 @@ type Repl struct {
 	out        io.Writer
 	err        io.Writer
 	printer    Printer
+	errHandler client.ErrorHandler
 	lineBuffer *lineBuffer
 	hidesNil   bool
 }
 
 type Opts struct {
-	In       io.Reader
-	Out      io.Writer
-	Err      io.Writer
-	Printer  Printer
-	HidesNil bool
+	In         io.Reader
+	Out        io.Writer
+	Err        io.Writer
+	Printer    Printer
+	ErrHandler client.ErrorHandler
+	HidesNil   bool
 }
 
 func NewRepl(
 	opts *Opts,
-	factory func(client.OutputHandler, client.ErrorHandler) (client.Client, error),
-) (*Repl, error) {
+	factory func(client.OutputHandler) client.Client,
+) *Repl {
 	repl := &Repl{
 		in:         newReader(opts.In),
 		out:        opts.Out,
 		err:        opts.Err,
 		printer:    opts.Printer,
+		errHandler: opts.ErrHandler,
 		lineBuffer: &lineBuffer{},
 		hidesNil:   opts.HidesNil,
 	}
-	client, err := factory(repl, repl)
-	if err != nil {
-		return nil, err
-	}
+	client := factory(repl)
 	repl.client = client
-	return repl, nil
+	return repl
 }
 
 func (r *Repl) Close() error {
@@ -67,18 +67,6 @@ func (r *Repl) Out(s string) {
 
 func (r *Repl) Err(s string) {
 	r.printer.With(color.FgRed).Fprint(r.err, s)
-}
-
-func (r *Repl) HandleErr(err error) {
-	var errmsg string
-	switch err {
-	case client.ErrDisconnected:
-		errmsg = "Disconnected from server"
-	default:
-		errmsg = err.Error()
-	}
-	r.printer.With(color.FgRed).Fprintln(r.err, errmsg)
-	os.Exit(1)
 }
 
 func (r *Repl) handleResults(ch <-chan client.EvalResult) {
@@ -102,7 +90,7 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 				switch err := res.(error); err {
 				case io.EOF, errInterrupted:
 				default:
-					r.HandleErr(err)
+					r.errHandler.HandleErr(err)
 				}
 			}
 		}
@@ -120,13 +108,13 @@ func (r *Repl) Load(filename string) {
 	} else {
 		file, err := os.Open(filename)
 		if err != nil {
-			r.HandleErr(err)
+			r.errHandler.HandleErr(err)
 		}
 		reader = bufio.NewReader(file)
 	}
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		r.HandleErr(err)
+		r.errHandler.HandleErr(err)
 	}
 	r.handleResults(r.client.Load(filename, string(content)))
 }
@@ -160,7 +148,7 @@ func (r *Repl) Start() {
 			case io.EOF:
 				return
 			default:
-				r.HandleErr(res)
+				r.errHandler.HandleErr(res)
 			}
 		case string:
 			s, cont, _ := r.lineBuffer.feedLine(res)

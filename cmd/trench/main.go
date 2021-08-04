@@ -1,16 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/athos/trenchman/client"
-	"github.com/athos/trenchman/nrepl"
-	"github.com/athos/trenchman/prepl"
 	"github.com/athos/trenchman/repl"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
@@ -36,6 +31,22 @@ type cmdArgs struct {
 	colorOption *string
 }
 
+type errorHandler struct {
+	printer repl.Printer
+}
+
+func (h errorHandler) HandleErr(err error) {
+	var errmsg string
+	switch err {
+	case client.ErrDisconnected:
+		errmsg = "disconnected from server"
+	default:
+		errmsg = err.Error()
+	}
+	h.printer.With(color.FgRed).Fprintln(os.Stderr, errmsg)
+	os.Exit(1)
+}
+
 var args = cmdArgs{
 	port:        kingpin.Flag("port", "Connect to the specified port.").Short('p').Int(),
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").PlaceHolder("FILE").String(),
@@ -45,33 +56,6 @@ var args = cmdArgs{
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
-}
-
-var urlRegex = regexp.MustCompile(`(?:(nrepl|prepl)://)?([^:]+)(?::(\d+))?`)
-
-var portfileNotSpecified = errors.New("port file not specified")
-
-func readPortFromFile(protocol, portFile string) (int, error) {
-	filename := portFile
-	if portFile == "" {
-		if protocol == "nrepl" {
-			filename = ".nrepl-port"
-		} else {
-			filename = ".prepl-port"
-		}
-	}
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		if portFile == "" {
-			return 0, portfileNotSpecified
-		}
-		return 0, err
-	}
-	port, err := strconv.Atoi(string(content))
-	if err != nil {
-		return 0, err
-	}
-	return port, nil
 }
 
 func colorized(colorOption string) bool {
@@ -89,101 +73,14 @@ func colorized(colorOption string) bool {
 	return false
 }
 
-func nReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) (client.Client, error) {
-	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) (client.Client, error) {
-		c, err := nrepl.NewClient(&nrepl.Opts{
-			Host:          host,
-			Port:          port,
-			OutputHandler: outHandler,
-			ErrorHandler:  errHandler,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return c, nil
-	}
-}
-
-func pReplFactory(host string, port int) func(client.OutputHandler, client.ErrorHandler) (client.Client, error) {
-	return func(outHandler client.OutputHandler, errHandler client.ErrorHandler) (client.Client, error) {
-		c, err := prepl.NewClient(&prepl.Opts{
-			Host:          host,
-			Port:          port,
-			OutputHandler: outHandler,
-			ErrorHandler:  errHandler,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return c, nil
-	}
-}
-
-func setupRepl(protocol string, host string, port int, opts *repl.Opts) (*repl.Repl, error) {
-	opts.In = os.Stdin
-	opts.Out = os.Stdout
-	opts.Err = os.Stderr
-	var factory func(client.OutputHandler, client.ErrorHandler) (client.Client, error)
-	if protocol == "nrepl" {
-		factory = nReplFactory(host, port)
-	} else {
-		factory = pReplFactory(host, port)
-	}
-	return repl.NewRepl(opts, factory)
-}
-
-func arbitrateServer(args *cmdArgs) (protocol string, host string, port int, err error) {
-	server := *args.server
-	if server != "" {
-		match := urlRegex.FindStringSubmatch(server)
-		if match == nil {
-			err = errors.New("bad url specified to -s option: " + server)
-			return
-		}
-		protocol = match[1]
-		host = match[2]
-		if match[3] != "" {
-			port, _ = strconv.Atoi(match[3])
-		}
-	}
-	if protocol == "" {
-		switch *args.protocol {
-		case "n", "nrepl":
-			protocol = "nrepl"
-		case "p", "prepl":
-			protocol = "prepl"
-		}
-	}
-	if port == 0 && *args.port != 0 {
-		port = *args.port
-	}
-	if port == 0 {
-		port, err = readPortFromFile(protocol, *args.portfile)
-		if err != nil {
-			if err != portfileNotSpecified {
-				err = fmt.Errorf("could not read port file: %s", *args.portfile)
-			} else {
-				err = errors.New("port must be specified with -p or -s")
-			}
-			return
-		}
-	}
-	return
-}
-
 func main() {
 	kingpin.Version(version)
 	kingpin.Parse()
 
 	printer := repl.NewPrinter(colorized(*args.colorOption))
-	fatal := func(err error) {
-		printer.With(color.FgRed).Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-	protocol, host, port, err := arbitrateServer(&args)
-	if err != nil {
-		fatal(err)
-	}
+	errHandler := errorHandler{printer}
+	helper := setupHelper{errHandler}
+	protocol, host, port := helper.arbitrateServerInfo(&args)
 	filename := strings.TrimSpace(*args.file)
 	mainNS := strings.TrimSpace(*args.mainNS)
 	code := strings.TrimSpace(*args.eval)
@@ -191,10 +88,7 @@ func main() {
 		Printer:  printer,
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl, err := setupRepl(protocol, host, port, opts)
-	if err != nil {
-		fatal(err)
-	}
+	repl := helper.setupRepl(protocol, host, port, opts)
 	defer repl.Close()
 
 	if filename != "" {
