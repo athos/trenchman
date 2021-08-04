@@ -15,13 +15,11 @@ import (
 
 var urlRegex = regexp.MustCompile(`(?:(nrepl|prepl)://)?([^:]+)(?::(\d+))?`)
 
-var portfileNotSpecified = errors.New("port file not specified")
-
 type setupHelper struct {
 	errHandler client.ErrorHandler
 }
 
-func readPortFromFile(protocol, portFile string) (int, error) {
+func readPortFromFile(protocol, portFile string) (int, bool, error) {
 	filename := portFile
 	if portFile == "" {
 		if protocol == "nrepl" {
@@ -33,15 +31,15 @@ func readPortFromFile(protocol, portFile string) (int, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		if portFile == "" {
-			return 0, portfileNotSpecified
+			return 0, false, err
 		}
-		return 0, err
+		return 0, true, err
 	}
 	port, err := strconv.Atoi(string(content))
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
-	return port, nil
+	return port, false, nil
 }
 
 func (h setupHelper) nReplFactory(host string, port int) func(client.OutputHandler) client.Client {
@@ -115,9 +113,9 @@ func (h setupHelper) arbitrateServerInfo(args *cmdArgs) (protocol string, host s
 		port = *args.port
 	}
 	if port == 0 {
-		p, err := readPortFromFile(protocol, *args.portfile)
+		p, portfileSpecified, err := readPortFromFile(protocol, *args.portfile)
 		if err != nil {
-			if err != portfileNotSpecified {
+			if portfileSpecified {
 				err = fmt.Errorf("could not read port file: %s", *args.portfile)
 			} else {
 				err = errors.New("port must be specified with -p or -s")
