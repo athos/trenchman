@@ -22,7 +22,41 @@ Trenchman does not have readline support at this time. If you want to use featur
 
 ## Usage
 
-(TODO)
+### Connecting to a server
+
+### Evaluation
+
+Trenchman provides three evaluation modes as with the Clojure CLI.
+
+#### Evaluating an expression
+
+```sh
+$ trench -e '(println "Hello, World!")'
+Hello, World!
+$
+```
+
+```sh
+$ trench -e '(map inc [1 2 3])'
+(2 3 4)
+$
+```
+
+#### Evaluating a file
+
+```sh
+$ cat hello.clj
+(println "Hello, World!")
+$ trench -f hello.clj
+Hello, World!
+$
+```
+
+#### Calling `-main` for a namespace
+
+```sh
+$ trench -m foo.bar
+```
 
 ## License
 
