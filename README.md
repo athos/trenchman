@@ -6,9 +6,10 @@ Trenchman is a standalone nREPL/prepl client written in Go, heavily inspired by 
 
 ## Features
 
+- Written in Go and runs on various platforms
 - Fast startup
 - Support for nREPL and prepl
-- Written in Go and runs on various platforms
+- Works as a language-agnostic nREPL client
 
 ## Installation
 
