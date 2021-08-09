@@ -29,7 +29,7 @@ Trenchman does not have readline support at this time. If you want to use featur
 
 Trenchman provides three evaluation modes as with the Clojure CLI.
 
-#### Evaluating an expression
+#### Evaluating an expression (`-e`)
 
 If the `-e` option is specified with an expression, Trenchman evaluates that expression:
 
@@ -47,7 +47,7 @@ $ trench -e '(map inc [1 2 3])'
 $
 ```
 
-#### Evaluating a file
+#### Evaluating a file (`-f`)
 
 With the `-f` option, you can load (evaluate) the specified file:
 
@@ -65,6 +65,7 @@ If `-` is specified as the input file, the input code will be read from stdin:
 $ echo '(println "Hello, World!")' | trench -f-
 Hello, World!
 $
+```
 
 #### Calling `-main` for a namespace
 
