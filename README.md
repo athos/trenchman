@@ -30,11 +30,15 @@ Trenchman provides three evaluation modes as with the Clojure CLI.
 
 #### Evaluating an expression
 
+If the `-e` option is specified with an expression, Trenchman evaluates that expression:
+
 ```sh
 $ trench -e '(println "Hello, World!")'
 Hello, World!
 $
 ```
+
+Trenchman will print the evaluation result if the given expression evaluates to a non-`nil` value:
 
 ```sh
 $ trench -e '(map inc [1 2 3])'
@@ -44,6 +48,8 @@ $
 
 #### Evaluating a file
 
+With the `-f` option, you can load (evaluate) the specified file:
+
 ```sh
 $ cat hello.clj
 (println "Hello, World!")
@@ -51,6 +57,13 @@ $ trench -f hello.clj
 Hello, World!
 $
 ```
+
+If `-` is specified as the input file, the input code will be read from stdin:
+
+```sh
+$ echo '(println "Hello, World!")' | trench -f-
+Hello, World!
+$
 
 #### Calling `-main` for a namespace
 
