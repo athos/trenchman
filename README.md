@@ -25,6 +25,35 @@ Trenchman does not have readline support at this time. If you want to use featur
 
 ### Connecting to a server
 
+One way to connect to a running server using Trenchman is to specify the server URL with the `-s` (`--server`) option. For example, the following command let you connect to an nREPL server listening on `localhost:12345`:
+
+```sh
+$ trench -s nrepl://localhost:12345
+```
+
+In addition to nREPL, there is another protocol available: prepl.
+To connect to a prepl server, use the `prepl://` scheme instead of `nrepl://`:
+
+```sh
+$ trench -s prepl://localhost:5555
+```
+
+Also, the port and protocol can be specified with dedicated options:
+
+- port: `-p`, `--port=PORT`
+- protocol: `-P`, `--protocol=(nrepl|prepl)`
+
+If you omit the protocol or server host, Trenchman assumes that the following default values are specified:
+
+- protocol: `nrepl`
+- server host: `127.0.0.1`
+
+If you omit the port number, Trenchman tries reading it from a port file, as described in the next section.
+
+#### Port file
+
+(TODO)
+
 ### Evaluation
 
 Trenchman provides three evaluation modes as with the Clojure CLI.
