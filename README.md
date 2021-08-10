@@ -11,6 +11,17 @@ Trenchman is a standalone nREPL/prepl client written in Go, heavily inspired by 
 - Support for nREPL and prepl
 - Works as a language-agnostic nREPL client
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Connecting to a server](#connecting-to-a-server)
+    - [Port file](#port-file)
+  - [Evaluation](#evaluation)
+    - [Evaluating an expression (`-e`)](#evaluating-an-expression--e)
+    - [Evaluating a file (`-f`)](#evaluating-a-file--f)
+    - [Calling `-main` for a namespace (`-m`)](#calling--main-for-a-namespace--m)
+
 ## Installation
 
 If you have the Go tool chain installed, you can build and install Trenchman by the following command:
@@ -96,7 +107,7 @@ Hello, World!
 $
 ```
 
-#### Calling `-main` for a namespace
+#### Calling `-main` for a namespace (`-m`)
 
 ```sh
 $ trench -m foo.bar
