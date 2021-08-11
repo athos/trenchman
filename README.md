@@ -99,6 +99,9 @@ Hello, World!
 $
 ```
 
+Note that the specified file path is interpreted as one from the client's working directory.
+The client will send the entire content of the file to the server once the connection is established.
+
 If `-` is specified as the input file, the input code will be read from stdin:
 
 ```sh
