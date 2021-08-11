@@ -59,6 +59,14 @@ If you omit the protocol or server host, Trenchman assumes that the following de
 - protocol: `nrepl`
 - server host: `127.0.0.1`
 
+So, in order to connect to `nrepl://localhost:12345`, you only have to do:
+
+```sh
+$ trench -p 12345
+```
+
+rather than `trench -s nrepl://localhost:12345`.
+
 If you omit the port number, Trenchman will read it from a port file, as described in the next section.
 
 #### Port file
