@@ -112,9 +112,19 @@ $
 
 #### Calling `-main` for a namespace (`-m`)
 
+With the `-m` option, you can call the `-main` function for the specified namespace:
+
 ```sh
-$ trench -m foo.bar
+$ cat src/hello/core.clj
+(ns hello.core)
+
+(defn -main []
+  (println "Hello, World!"))
+$ trench -m hello.core
+Hello, World!
 ```
+
+Note that the file for the specified namespace must be on the server-side classpath.
 
 ## License
 
