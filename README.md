@@ -59,19 +59,38 @@ If you omit the protocol or server host, Trenchman assumes that the following de
 - protocol: `nrepl`
 - server host: `127.0.0.1`
 
-So, in order to connect to `nrepl://localhost:12345`, you only have to do:
+So, in order to connect to `nrepl://127.0.0.1:12345`, you only have to do:
 
 ```sh
 $ trench -p 12345
 ```
 
-rather than `trench -s nrepl://localhost:12345`.
+rather than `trench -s nrepl://127.0.0.1:12345`.
 
 If you omit the port number, Trenchman will read it from a port file, as described in the next section.
 
 #### Port file
 
-(TODO)
+A *port file* is a file that contains only the port number that the server is listening on.
+Typical nREPL servers generate a port file named `.nrepl-port` at startup.
+
+Trenchman tries to read the port number from a port file if the connecting port is not specified explicitly. By default, Trenchman will read `.nrepl-port` for nREPL connection and `.prepl-port` for prepl connection.
+
+So, the following example connects to `nrepl://127.0.0.1:12345`:
+
+```sh
+$ cat .nrepl-port
+12345
+$ trench
+```
+
+If you'd rather use another file as a port file, specify it with the `--port-file` option:
+
+```sh
+$ cat my-port-file
+3000
+$ trench --port-file my-port-file
+```
 
 ### Evaluation
 
