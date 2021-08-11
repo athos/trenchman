@@ -94,7 +94,18 @@ $ trench --port-file my-port-file
 
 ### Evaluation
 
-Trenchman provides three evaluation modes as with the Clojure CLI.
+By default, Trenchman starts a new REPL session after the connection is established:
+
+```sh
+$ trench
+user=> (println "Hello, World!")
+Hello, World!
+nil
+user=>
+```
+
+In addition to starting an ordinary REPL session, Trenchman provides three more
+evaluation modes (`-e`/`-f`/`-m`), as with the Clojure CLI.
 
 #### Evaluating an expression (`-e`)
 
