@@ -2,15 +2,15 @@
 [![test](https://github.com/athos/trenchman/actions/workflows/test.yaml/badge.svg)](https://github.com/athos/trenchman/actions/workflows/test.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/athos/trenchman)](https://goreportcard.com/report/github.com/athos/trenchman)
 
-Trenchman is a standalone nREPL/prepl client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman).
+A standalone nREPL/prepl client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman)
 
 Trenchman is a standalone nREPL/prepl client, which means that it can be used as an ordinary REPL without having to make it cooperate with an editor or any other development tool.
 Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a running nREPL/prepl server, eliminating the overhead of launching a JVM process and bootstrapping Clojure for every startup.
 
 ## Features
 
-- Written in Go and runs on various platforms
 - Fast startup
+- Written in Go and runs on various platforms
 - Support for nREPL and prepl
 - Works as a language-agnostic nREPL client
 
@@ -33,7 +33,7 @@ If you have the Go tool chain installed, you can build and install Trenchman by 
 $ go install github.com/athos/trenchman/cmd/trench@latest
 ```
 
-Trenchman does not have readline support at this time. If you want to use features like line editing or command history, we recommend using [`rlwrap`](https://github.com/hanslub42/rlwrap) together with Trenchman.
+Trenchman does not have `readline` support at this time. If you want to use features like line editing or command history, we recommend using [`rlwrap`](https://github.com/hanslub42/rlwrap) together with Trenchman.
 
 ## Usage
 
@@ -45,8 +45,8 @@ One way to connect to a running server using Trenchman is to specify the server 
 $ trench -s nrepl://localhost:12345
 ```
 
-In addition to nREPL, there is another protocol available: prepl.
-To connect to a prepl server, use the `prepl://` scheme instead of `nrepl://`:
+In addition to nREPL, Trenchman supports the prepl protocol as well.
+To connect to a server via prepl, use the `prepl://` scheme instead of `nrepl://`:
 
 ```sh
 $ trench -s prepl://localhost:5555
@@ -74,7 +74,7 @@ If you omit the port number, Trenchman will read it from a port file, as describ
 
 #### Port file
 
-A *port file* is a file that contains only the port number that the server is listening on.
+A *port file* is a file that only contains the port number that the server is listening on.
 Typical nREPL servers generate a port file named `.nrepl-port` at startup.
 
 Trenchman tries to read the port number from a port file if the connecting port is not specified explicitly. By default, Trenchman will read `.nrepl-port` for nREPL connection and `.prepl-port` for prepl connection.
@@ -109,8 +109,8 @@ user=>
 
 To exit the REPL session, type `Ctrl-D` or `:repl/quit`.
 
-In addition to starting an ordinary REPL session, Trenchman provides three more
-evaluation modes (`-e`/`-f`/`-m`), as with the Clojure CLI.
+In addition to starting a REPL session, Trenchman provides three more
+evaluation modes (`-e`/`-f`/`-m`).
 
 #### Evaluating an expression (`-e`)
 
@@ -148,7 +148,7 @@ The client will send the entire content of the file to the server once the conne
 If `-` is specified as the input file, the input code will be read from stdin:
 
 ```sh
-$ echo '(println "Hello, World!")' | trench -f-
+$ echo '(println "Hello, World!")' | trench -f -
 Hello, World!
 $
 ```
@@ -173,4 +173,4 @@ Note that the file for the specified namespace must be on the server-side classp
 
 Copyright (c) 2021 Shogo Ohta
 
-Distributed under the MIT License. See LICENSE for more details.
+Distributed under the MIT License. See LICENSE for details.
