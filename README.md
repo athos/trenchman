@@ -4,6 +4,9 @@
 
 Trenchman is a standalone nREPL/prepl client written in Go, heavily inspired by [Grenchman](https://github.com/technomancy/grenchman).
 
+Trenchman is a standalone nREPL/prepl client, which means that it can be used as an ordinary REPL without having to make it cooperate with an editor or any other development tool.
+Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a running nREPL/prepl server, eliminating the overhead of launching a JVM process and bootstrapping Clojure for every startup.
+
 ## Features
 
 - Written in Go and runs on various platforms
