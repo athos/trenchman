@@ -107,6 +107,8 @@ nil
 user=>
 ```
 
+To exit the REPL session, type `Ctrl-D` or `:repl/quit`.
+
 In addition to starting an ordinary REPL session, Trenchman provides three more
 evaluation modes (`-e`/`-f`/`-m`), as with the Clojure CLI.
 
