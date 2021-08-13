@@ -21,7 +21,7 @@ var errInterrupted = errors.New("read interrupted")
 func newReader(r io.Reader) *interruptibleReader {
 	reader := &interruptibleReader{
 		reader:   bufio.NewReader(r),
-		cancelCh: make(chan struct{}, 1),
+		cancelCh: make(chan struct{}),
 		notifyCh: make(chan struct{}),
 		resultCh: make(chan interface{}),
 		returnCh: make(chan interface{}),
