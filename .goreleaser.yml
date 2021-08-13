@@ -1,0 +1,26 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - main: ./cmd/trench
+    binary: trench
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    replacements:
+      darwin: macos
+    format_overrides:
+      - goos: windows
+        format: zip
+snapshot:
+  name_template: "{{ incpatch .Tag }}-next"
+changelog:
+  skip: true
