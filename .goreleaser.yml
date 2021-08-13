@@ -14,8 +14,7 @@ builds:
       - amd64
       - arm64
 archives:
-  - name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
-    replacements:
+  - replacements:
       darwin: macos
     format_overrides:
       - goos: windows
