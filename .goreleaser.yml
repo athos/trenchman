@@ -23,3 +23,16 @@ snapshot:
   name_template: "{{ incpatch .Tag }}-next"
 changelog:
   skip: true
+brews:
+  - tap:
+      owner: athos
+      name: homebrew-tap
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    folder: Formula
+    homepage: "https://github.com/athos/trenchman"
+    description: "A standalone nREPL/prepl client written in Go, heavily inspired by Grenchman"
+    license: "MIT"
+    test: |
+      system "#{bin}/trench --version"
