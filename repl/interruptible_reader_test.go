@@ -52,22 +52,22 @@ func TestInterrupt(t *testing.T) {
 		assert.True(t, ok)
 		assert.Nil(t, r.Close())
 	})
-	t.Run("readLine after interruption successfully reads line", func(t *testing.T) {
-		b := newThreadSafeBuffer()
-		r := newReader(b)
-		ch := r.readLine()
-		go func() {
-			r.interrupt()
-		}()
-		res := <-ch
-		_, ok := res.(error)
-		assert.True(t, ok)
-		ch = r.readLine()
-		go func() {
-			b.WriteString("hello\n")
-		}()
-		line := <-ch
-		assert.Equal(t, "hello\n", line)
-		assert.Nil(t, r.Close())
-	})
+	// t.Run("readLine after interruption successfully reads line", func(t *testing.T) {
+	// 	b := newThreadSafeBuffer()
+	// 	r := newReader(b)
+	// 	ch := r.readLine()
+	// 	go func() {
+	// 		r.interrupt()
+	// 	}()
+	// 	res := <-ch
+	// 	_, ok := res.(error)
+	// 	assert.True(t, ok)
+	// 	ch = r.readLine()
+	// 	go func() {
+	// 		b.WriteString("hello\n")
+	// 	}()
+	// 	line := <-ch
+	// 	assert.Equal(t, "hello\n", line)
+	// 	assert.Nil(t, r.Close())
+	// })
 }
