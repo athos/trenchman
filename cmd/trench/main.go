@@ -12,7 +12,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-var version = "v0.0.0"
+var version = "0.0.0"
 
 const (
 	COLOR_NONE   = "none"
@@ -74,7 +74,7 @@ func colorized(colorOption string) bool {
 }
 
 func main() {
-	kingpin.Version(version)
+	kingpin.Version("Trenchman " + version)
 	kingpin.Parse()
 
 	printer := repl.NewPrinter(colorized(*args.colorOption))
