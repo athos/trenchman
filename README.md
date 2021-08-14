@@ -57,6 +57,23 @@ Trenchman does not have `readline` support at this time. If you want to use feat
 
 ## Usage
 
+```
+usage: trench [<flags>]
+
+Flags:
+      --help            Show context-sensitive help (also try --help-long and --help-man).
+  -p, --port=PORT       Connect to the specified port.
+      --port-file=FILE  Specify port file that specifies port to connect to. Defaults to .nrepl-port.
+  -P, --protocol=nrepl  Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
+  -s, --server=[(nrepl|prepl)://]host[:port]
+                        Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
+  -e, --eval=EXPR       Evaluate an expression.
+  -f, --file=FILE       Evaluate a file.
+  -m, --main=NAMESPACE  Call the -main function for a namespace.
+  -C, --color=auto      When to use colors. Possible values: always, auto, none. Defaults to auto.
+      --version         Show application version.
+```
+
 ### Connecting to a server
 
 One way to connect to a running server using Trenchman is to specify the server URL with the `-s` (`--server`) option. For example, the following command lets you connect to an nREPL server listening on `localhost:12345`:
