@@ -17,6 +17,8 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 ## Table of Contents
 
 - [Installation](#installation)
+  - [Homebrew (macOS and Linux)](#homebrew-macos-and-linux)
+  - [Manual Install](#manual-install)
 - [Usage](#usage)
   - [Connecting to a server](#connecting-to-a-server)
     - [Port file](#port-file)
