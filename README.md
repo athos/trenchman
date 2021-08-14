@@ -27,6 +27,24 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 
 ## Installation
 
+### Homebrew (macOS and Linux)
+
+To install Trenchman via [Homebrew](https://brew.sh/), run the following command:
+
+```sh
+$ brew install athos/tap/trenchman
+```
+
+To upgrade:
+
+```sh
+$ brew upgrade trenchman
+```
+
+### Manual Install
+
+Pre-built binaries are available for linux, macOS and Windows on the [releases](https://github.com/athos/trenchman/releases) page.
+
 If you have the Go tool chain installed, you can build and install Trenchman by the following command:
 
 ```sh
