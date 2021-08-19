@@ -74,8 +74,11 @@ func NewClient(opts *Opts) (*Client, error) {
 		return nil, err
 	}
 	if initNS != "user" {
-		msg := fmt.Sprintf("(do (require '%s) (in-ns '%s))", initNS, initNS)
+		msg := fmt.Sprintf("(require '%s)\n(in-ns '%s)\n", initNS, initNS)
 		if err := c.Send(msg); err != nil {
+			return nil, err
+		}
+		if _, err := c.Recv(); err != nil {
 			return nil, err
 		}
 		if _, err := c.Recv(); err != nil {
