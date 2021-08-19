@@ -62,17 +62,18 @@ Trenchman does not have `readline` support at this time. If you want to use feat
 usage: trench [<flags>]
 
 Flags:
-      --help            Show context-sensitive help (also try --help-long and --help-man).
-  -p, --port=PORT       Connect to the specified port.
-      --port-file=FILE  Specify port file that specifies port to connect to. Defaults to .nrepl-port.
-  -P, --protocol=nrepl  Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
+      --help               Show context-sensitive help (also try --help-long and --help-man).
+  -p, --port=PORT          Connect to the specified port.
+      --port-file=FILE     Specify port file that specifies port to connect to. Defaults to .nrepl-port.
+  -P, --protocol=nrepl     Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
   -s, --server=[(nrepl|prepl)://]host[:port]
-                        Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
-  -e, --eval=EXPR       Evaluate an expression.
-  -f, --file=FILE       Evaluate a file.
-  -m, --main=NAMESPACE  Call the -main function for a namespace.
-  -C, --color=auto      When to use colors. Possible values: always, auto, none. Defaults to auto.
-      --version         Show application version.
+                           Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
+  -e, --eval=EXPR          Evaluate an expression.
+  -f, --file=FILE          Evaluate a file.
+  -m, --main=NAMESPACE     Call the -main function for a namespace.
+      --init-ns=NAMESPACE  Initialize REPL with the specified namespace. Defaults to "user".
+  -C, --color=auto         When to use colors. Possible values: always, auto, none. Defaults to auto.
+      --version            Show application version.
 ```
 
 ### Connecting to a server
