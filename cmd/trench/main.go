@@ -28,6 +28,7 @@ type cmdArgs struct {
 	eval        *string
 	file        *string
 	mainNS      *string
+	initNS      *string
 	colorOption *string
 }
 
@@ -55,6 +56,7 @@ var args = cmdArgs{
 	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').PlaceHolder("EXPR").String(),
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
+	initNS:      kingpin.Flag("init-ns", "Initialize REPL with the specified namespace. Defaults to \"user\".").PlaceHolder("NAMESPACE").String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
 }
 
@@ -82,13 +84,14 @@ func main() {
 	helper := setupHelper{errHandler}
 	protocol, host, port := helper.arbitrateServerInfo(&args)
 	filename := strings.TrimSpace(*args.file)
+	initNS := strings.TrimSpace(*args.initNS)
 	mainNS := strings.TrimSpace(*args.mainNS)
 	code := strings.TrimSpace(*args.eval)
 	opts := &repl.Opts{
 		Printer:  printer,
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl := helper.setupRepl(protocol, host, port, opts)
+	repl := helper.setupRepl(protocol, host, port, initNS, opts)
 	defer repl.Close()
 
 	if filename != "" {

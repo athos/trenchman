@@ -36,6 +36,7 @@ type (
 	Opts struct {
 		Host          string
 		Port          int
+		InitNS        string
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
 		connBuilder   func(host string, port int) (net.Conn, error)
@@ -53,13 +54,17 @@ func NewClient(opts *Opts) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	initNS := opts.InitNS
+	if initNS == "" {
+		initNS = "user"
+	}
 	c := &Client{
 		socket:        socket,
 		decoder:       edn.NewDecoder(socket),
 		writer:        bufio.NewWriter(socket),
 		outputHandler: opts.OutputHandler,
 		errHandler:    opts.ErrorHandler,
-		ns:            "user",
+		ns:            initNS,
 		done:          make(chan struct{}),
 	}
 	if err := c.Send("(set! *print-namespace-maps* false)"); err != nil {
@@ -67,6 +72,15 @@ func NewClient(opts *Opts) (*Client, error) {
 	}
 	if _, err := c.Recv(); err != nil {
 		return nil, err
+	}
+	if initNS != "user" {
+		msg := fmt.Sprintf("(do (require '%s) (in-ns '%s))", initNS, initNS)
+		if err := c.Send(msg); err != nil {
+			return nil, err
+		}
+		if _, err := c.Recv(); err != nil {
+			return nil, err
+		}
 	}
 	go client.StartLoop(c, c, c.done)
 	return c, nil

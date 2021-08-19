@@ -30,6 +30,7 @@ type (
 	Opts struct {
 		Host          string
 		Port          int
+		InitNS        string
 		Oneshot       bool
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
@@ -39,10 +40,14 @@ type (
 )
 
 func NewClient(opts *Opts) (*Client, error) {
+	initNS := opts.InitNS
+	if initNS == "" {
+		initNS = "user"
+	}
 	c := &Client{
 		outputHandler: opts.OutputHandler,
 		errHandler:    opts.ErrorHandler,
-		ns:            "user",
+		ns:            initNS,
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
 		idGenerator:   opts.idGenerator,
