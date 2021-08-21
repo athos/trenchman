@@ -68,6 +68,7 @@ Flags:
   -P, --protocol=nrepl     Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
   -s, --server=[(nrepl|prepl)://]host[:port]
                            Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
+  -i, --init=FILE          Load a file before execution.
   -e, --eval=EXPR          Evaluate an expression.
   -f, --file=FILE          Evaluate a file.
   -m, --main=NAMESPACE     Call the -main function for a namespace.
