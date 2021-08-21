@@ -25,6 +25,7 @@ type cmdArgs struct {
 	portfile    *string
 	protocol    *string
 	server      *string
+	init        *string
 	eval        *string
 	file        *string
 	mainNS      *string
@@ -53,6 +54,7 @@ var args = cmdArgs{
 	portfile:    kingpin.Flag("port-file", "Specify port file that specifies port to connect to. Defaults to .nrepl-port.").PlaceHolder("FILE").String(),
 	protocol:    kingpin.Flag("protocol", "Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.").Default("nrepl").Short('P').Enum("n", "nrepl", "p", "prepl"),
 	server:      kingpin.Flag("server", "Connect to the specified URL (e.g. prepl://127.0.0.1:5555).").Default("127.0.0.1").Short('s').PlaceHolder("[(nrepl|prepl)://]host[:port]").String(),
+	init:        kingpin.Flag("init", "Load a file before execution.").Short('i').PlaceHolder("FILE").String(),
 	eval:        kingpin.Flag("eval", "Evaluate an expression.").Short('e').PlaceHolder("EXPR").String(),
 	file:        kingpin.Flag("file", "Evaluate a file.").Short('f').String(),
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
@@ -83,6 +85,7 @@ func main() {
 	errHandler := errorHandler{printer}
 	helper := setupHelper{errHandler}
 	protocol, host, port := helper.arbitrateServerInfo(&args)
+	initFile := strings.TrimSpace(*args.init)
 	filename := strings.TrimSpace(*args.file)
 	initNS := strings.TrimSpace(*args.initNS)
 	mainNS := strings.TrimSpace(*args.mainNS)
@@ -94,6 +97,9 @@ func main() {
 	repl := helper.setupRepl(protocol, host, port, initNS, opts)
 	defer repl.Close()
 
+	if initFile != "" {
+		repl.LoadWithResultVisibility(initFile, true)
+	}
 	if filename != "" {
 		repl.Load(filename)
 		return
