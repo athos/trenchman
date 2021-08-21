@@ -67,7 +67,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		ns:            initNS,
 		done:          make(chan struct{}),
 	}
-	if err := c.Send("(set! *print-namespace-maps* false)"); err != nil {
+	if err := c.Send("(set! *print-namespace-maps* false)\n"); err != nil {
 		return nil, err
 	}
 	if _, err := c.Recv(); err != nil {

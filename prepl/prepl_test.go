@@ -11,7 +11,7 @@ import (
 func setupMock(steps []client.Step) *client.MockServer {
 	s := make([]client.Step, 1, len(steps)+1)
 	s[0] = client.Step{
-		Expected:  "(set! *print-namespace-maps* false)",
+		Expected:  "(set! *print-namespace-maps* false)\n",
 		Responses: []string{`{:tag :ret, :val "nil"}`},
 	}
 	s = append(s, steps...)
