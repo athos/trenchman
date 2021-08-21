@@ -69,7 +69,7 @@ func (r *Repl) Err(s string) {
 	r.printer.With(color.FgRed).Fprint(r.err, s)
 }
 
-func (r *Repl) handleResults(ch <-chan client.EvalResult) {
+func (r *Repl) handleResults(ch <-chan client.EvalResult, hidesResult bool) {
 	for {
 		select {
 		case res, ok := <-ch:
@@ -77,7 +77,7 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 				return
 			}
 			if s, ok := res.(string); ok {
-				if !r.hidesNil || s != "nil" {
+				if !hidesResult && (!r.hidesNil || s != "nil") {
 					fmt.Fprintln(r.out, s)
 				}
 			} else if _, ok := res.(*client.RuntimeError); !ok {
@@ -98,10 +98,10 @@ func (r *Repl) handleResults(ch <-chan client.EvalResult) {
 }
 
 func (r *Repl) Eval(code string) {
-	r.handleResults(r.client.Eval(code))
+	r.handleResults(r.client.Eval(code), false)
 }
 
-func (r *Repl) Load(filename string) {
+func (r *Repl) LoadWithResultVisibility(filename string, hidesResult bool) {
 	var reader *bufio.Reader
 	if filename == "-" {
 		reader = bufio.NewReader(os.Stdin)
@@ -116,7 +116,11 @@ func (r *Repl) Load(filename string) {
 	if err != nil {
 		r.errHandler.HandleErr(err)
 	}
-	r.handleResults(r.client.Load(filename, string(content)))
+	r.handleResults(r.client.Load(filename, string(content)), hidesResult)
+}
+
+func (r *Repl) Load(filename string) {
+	r.LoadWithResultVisibility(filename, false)
 }
 
 func (r *Repl) Interrupt() {
