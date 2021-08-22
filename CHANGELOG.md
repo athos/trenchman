@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 ## [Unreleased]
 ### Added
 - New option `--init-ns` to specify initial REPL namespace [#3](https://github.com/athos/trenchman/pull/3)
+- New option `--init` to load a file before execution [#4](https://github.com/athos/trenchman/pull/4)
+
+### Changed
+- Add newlines to each prelude message to work around a bug in ClojureScript's prepl server [#5](https://github.com/athos/trenchman/pull/5)
 
 ## [v0.1.1] - 2021-08-14
 - Same as v0.1.0, but fixes a Homebrew release bug
