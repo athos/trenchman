@@ -85,7 +85,7 @@ func buildMainInvocation(mainNS string, args []string) string {
 		quotedArgs = append(quotedArgs, fmt.Sprintf("%q", arg))
 	}
 	argStr := strings.Join(quotedArgs, " ")
-	return fmt.Sprintf("(do (require '%s) (%s/-main %s))", mainNS, mainNS, argStr)
+	return fmt.Sprintf("(do (require '%s) (%s/-main %s) nil)", mainNS, mainNS, argStr)
 }
 
 func main() {
