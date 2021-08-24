@@ -61,7 +61,7 @@ var args = cmdArgs{
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
 	initNS:      kingpin.Flag("init-ns", "Initialize REPL with the specified namespace. Defaults to \"user\".").PlaceHolder("NAMESPACE").String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
-	args:        kingpin.Arg("args", "Arguments to pass to -main.").Strings(),
+	args:        kingpin.Arg("args", "Arguments to pass to -main. These will be ignored unless -m is specified.").Strings(),
 }
 
 func colorized(colorOption string) bool {
