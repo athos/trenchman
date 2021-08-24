@@ -59,7 +59,7 @@ Trenchman does not have `readline` support at this time. If you want to use feat
 ## Usage
 
 ```
-usage: trench [<flags>]
+usage: trench [<flags>] [<args>...]
 
 Flags:
       --help               Show context-sensitive help (also try --help-long and --help-man).
@@ -75,6 +75,9 @@ Flags:
       --init-ns=NAMESPACE  Initialize REPL with the specified namespace. Defaults to "user".
   -C, --color=auto         When to use colors. Possible values: always, auto, none. Defaults to auto.
       --version            Show application version.
+
+Args:
+  [<args>]  Arguments to pass to -main. These will be ignored unless -m is specified.
 ```
 
 ### Connecting to a server

@@ -31,6 +31,7 @@ type cmdArgs struct {
 	mainNS      *string
 	initNS      *string
 	colorOption *string
+	args        *[]string
 }
 
 type errorHandler struct {
@@ -60,6 +61,7 @@ var args = cmdArgs{
 	mainNS:      kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
 	initNS:      kingpin.Flag("init-ns", "Initialize REPL with the specified namespace. Defaults to \"user\".").PlaceHolder("NAMESPACE").String(),
 	colorOption: kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
+	args:        kingpin.Arg("args", "Arguments to pass to -main. These will be ignored unless -m is specified.").Strings(),
 }
 
 func colorized(colorOption string) bool {
@@ -75,6 +77,15 @@ func colorized(colorOption string) bool {
 		}
 	}
 	return false
+}
+
+func buildMainInvocation(mainNS string, args []string) string {
+	quotedArgs := []string{}
+	for _, arg := range args {
+		quotedArgs = append(quotedArgs, fmt.Sprintf("%q", arg))
+	}
+	argStr := strings.Join(quotedArgs, " ")
+	return fmt.Sprintf("(do (require '%s) (%s/-main %s) nil)", mainNS, mainNS, argStr)
 }
 
 func main() {
@@ -105,7 +116,7 @@ func main() {
 		return
 	}
 	if mainNS != "" {
-		repl.Eval(fmt.Sprintf("(do (require '%s) (%s/-main))", mainNS, mainNS))
+		repl.Eval(buildMainInvocation(mainNS, *args.args))
 		return
 	}
 	if code != "" {
