@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 - Add newlines to each prelude message to work around a bug in ClojureScript's prepl server [#5](https://github.com/athos/trenchman/pull/5)
+- Command-line args can now be passed to -main [#6](https://github.com/athos/trenchman/pull/6)
 
 ## [v0.1.1] - 2021-08-14
 - Same as v0.1.0, but fixes a Homebrew release bug
