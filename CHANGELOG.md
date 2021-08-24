@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [v0.2.0] - 2021-08-24
 ### Added
 - New option `--init-ns` to specify initial REPL namespace [#3](https://github.com/athos/trenchman/pull/3)
 - New option `--init` to load a file before execution [#4](https://github.com/athos/trenchman/pull/4)
@@ -16,6 +18,7 @@ All notable changes to this project will be documented in this file. This change
 ## [v0.1.0] - 2021-08-14
 - First release
 
-[Unreleased]: https://github.com/athos/trenchman/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/athos/trenchman/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/athos/trenchman/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/athos/trenchman/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/athos/trenchman/releases/tag/v0.1.0
