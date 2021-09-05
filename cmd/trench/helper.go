@@ -128,5 +128,8 @@ func (h setupHelper) resolveConnection(args *cmdArgs) (protocol string, connBuil
 		port = p
 	}
 	connBuilder = &client.TCPConnBuilder{Host: host, Port: port}
+	if *args.retryTimeout > 0 {
+		connBuilder = client.NewRetryConnBuilder(connBuilder, *args.retryTimeout, *args.retryInterval)
+	}
 	return
 }
