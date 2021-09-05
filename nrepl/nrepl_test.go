@@ -79,9 +79,9 @@ func setupClient(mock *client.MockServer) (*Client, error) {
 	return NewClient(&Opts{
 		OutputHandler: mock,
 		ErrorHandler:  mock,
-		connBuilder: func(_ string, _ int) (net.Conn, error) {
+		ConnBuilder: client.ConnBuilderFunc(func() (net.Conn, error) {
 			return mock, nil
-		},
+		}),
 		idGenerator: func() string { return EXEC_ID },
 	})
 }

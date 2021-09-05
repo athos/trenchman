@@ -20,9 +20,9 @@ func setupMock(steps []client.Step) *client.MockServer {
 
 func setupClient(mock *client.MockServer) (*Client, error) {
 	return NewClient(&Opts{
-		connBuilder: func(_ string, _ int) (net.Conn, error) {
+		ConnBuilder: client.ConnBuilderFunc(func() (net.Conn, error) {
 			return mock, nil
-		},
+		}),
 		OutputHandler: mock,
 		ErrorHandler:  mock,
 	})

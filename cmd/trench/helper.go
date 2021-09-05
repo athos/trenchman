@@ -45,8 +45,7 @@ func readPortFromFile(protocol, portFile string) (int, bool, error) {
 func (h setupHelper) nReplFactory(host string, port int, initNS string) func(client.OutputHandler) client.Client {
 	return func(outHandler client.OutputHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
-			Host:          host,
-			Port:          port,
+			ConnBuilder:   &client.TCPConnBuilder{Host: host, Port: port},
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
@@ -61,8 +60,7 @@ func (h setupHelper) nReplFactory(host string, port int, initNS string) func(cli
 func (h setupHelper) pReplFactory(host string, port int, initNS string) func(client.OutputHandler) client.Client {
 	return func(outHandler client.OutputHandler) client.Client {
 		c, err := prepl.NewClient(&prepl.Opts{
-			Host:          host,
-			Port:          port,
+			ConnBuilder:   &client.TCPConnBuilder{Host: host, Port: port},
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
