@@ -95,7 +95,7 @@ func main() {
 	printer := repl.NewPrinter(colorized(*args.colorOption))
 	errHandler := errorHandler{printer}
 	helper := setupHelper{errHandler}
-	protocol, host, port := helper.arbitrateServerInfo(&args)
+	protocol, connBuilder := helper.resolveConnection(&args)
 	initFile := strings.TrimSpace(*args.init)
 	filename := strings.TrimSpace(*args.file)
 	initNS := strings.TrimSpace(*args.initNS)
@@ -105,7 +105,7 @@ func main() {
 		Printer:  printer,
 		HidesNil: filename != "" || mainNS != "" || code != "",
 	}
-	repl := helper.setupRepl(protocol, host, port, initNS, opts)
+	repl := helper.setupRepl(protocol, connBuilder, initNS, opts)
 	defer repl.Close()
 
 	if initFile != "" {
