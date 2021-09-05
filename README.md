@@ -23,6 +23,7 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 - [Usage](#usage)
   - [Connecting to a server](#connecting-to-a-server)
     - [Port file](#port-file)
+    - [Retry on connection](#retry-on-connection)
   - [Evaluation](#evaluation)
     - [Evaluating an expression (`-e`)](#evaluating-an-expression--e)
     - [Evaluating a file (`-f`)](#evaluating-a-file--f)
@@ -139,6 +140,23 @@ $ cat my-port-file
 3000
 $ trench --port-file my-port-file
 ```
+
+#### Retry on connection
+
+When connecting to a server that is starting up, it's useful to be able to automatically retry the connection if it fails.
+
+The `--retry-timeout` and `--retry-interval` options control connection retries.
+`--retry-timeout DURATION` specifies the amount of time before connection retries are aborted and `--retry-interval DURATION` specifies the time interval between each retry (`DURATION` can be specified in the format accepted by [Go's duration parser](https://pkg.go.dev/time#ParseDuration), like `500ms`, `10s` or `1m`).
+
+For example, the following command will retry the connection every 5 seconds for up to 30 seconds:
+
+```sh
+$ trench --retry-timeout 30s --retry-interval 5s
+```
+
+If the connection fails after retrying the connection until the timeout, Trenchman will print the error and exit.
+
+If `--retry-timeout` is not specified, Trenchman will not retry the connection.
 
 ### Evaluation
 
