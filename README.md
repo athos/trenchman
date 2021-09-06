@@ -23,6 +23,7 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 - [Usage](#usage)
   - [Connecting to a server](#connecting-to-a-server)
     - [Port file](#port-file)
+    - [Retry on connection](#retry-on-connection)
   - [Evaluation](#evaluation)
     - [Evaluating an expression (`-e`)](#evaluating-an-expression--e)
     - [Evaluating a file (`-f`)](#evaluating-a-file--f)
@@ -62,19 +63,21 @@ Trenchman does not have `readline` support at this time. If you want to use feat
 usage: trench [<flags>] [<args>...]
 
 Flags:
-      --help               Show context-sensitive help (also try --help-long and --help-man).
-  -p, --port=PORT          Connect to the specified port.
-      --port-file=FILE     Specify port file that specifies port to connect to. Defaults to .nrepl-port.
-  -P, --protocol=nrepl     Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
+      --help                    Show context-sensitive help (also try --help-long and --help-man).
+  -p, --port=PORT               Connect to the specified port.
+      --port-file=FILE          Specify port file that specifies port to connect to. Defaults to .nrepl-port.
+  -P, --protocol=nrepl          Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
   -s, --server=[(nrepl|prepl)://]host[:port]
-                           Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
-  -i, --init=FILE          Load a file before execution.
-  -e, --eval=EXPR          Evaluate an expression.
-  -f, --file=FILE          Evaluate a file.
-  -m, --main=NAMESPACE     Call the -main function for a namespace.
-      --init-ns=NAMESPACE  Initialize REPL with the specified namespace. Defaults to "user".
-  -C, --color=auto         When to use colors. Possible values: always, auto, none. Defaults to auto.
-      --version            Show application version.
+                                Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
+      --retry-timeout=DURATION  Timeout after which retries are aborted. By default, Trenchman never retries connection.
+      --retry-interval=1s       Interval between retries when connecting to the server.
+  -i, --init=FILE               Load a file before execution.
+  -e, --eval=EXPR               Evaluate an expression.
+  -f, --file=FILE               Evaluate a file.
+  -m, --main=NAMESPACE          Call the -main function for a namespace.
+      --init-ns=NAMESPACE       Initialize REPL with the specified namespace. Defaults to "user".
+  -C, --color=auto              When to use colors. Possible values: always, auto, none. Defaults to auto.
+      --version                 Show application version.
 
 Args:
   [<args>]  Arguments to pass to -main. These will be ignored unless -m is specified.
@@ -137,6 +140,23 @@ $ cat my-port-file
 3000
 $ trench --port-file my-port-file
 ```
+
+#### Retry on connection
+
+When connecting to a server that is starting up, it's useful to be able to automatically retry the connection if it fails.
+
+The `--retry-timeout` and `--retry-interval` options control connection retries.
+`--retry-timeout DURATION` specifies the amount of time before connection retries are aborted and `--retry-interval DURATION` specifies the time interval between each retry (`DURATION` can be specified in the format accepted by [Go's duration parser](https://pkg.go.dev/time#ParseDuration), like `500ms`, `10s` or `1m`).
+
+For example, the following command will retry the connection every 5 seconds for up to 30 seconds:
+
+```sh
+$ trench --retry-timeout 30s --retry-interval 5s
+```
+
+If the connection fails after retrying the connection until the timeout, Trenchman will print the error and exit.
+
+If `--retry-timeout` is not specified, Trenchman will not retry the connection.
 
 ### Evaluation
 

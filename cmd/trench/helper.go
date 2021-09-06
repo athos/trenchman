@@ -42,11 +42,10 @@ func readPortFromFile(protocol, portFile string) (int, bool, error) {
 	return port, false, nil
 }
 
-func (h setupHelper) nReplFactory(host string, port int, initNS string) func(client.OutputHandler) client.Client {
+func (h setupHelper) nReplFactory(connBuilder client.ConnBuilder, initNS string) func(client.OutputHandler) client.Client {
 	return func(outHandler client.OutputHandler) client.Client {
 		c, err := nrepl.NewClient(&nrepl.Opts{
-			Host:          host,
-			Port:          port,
+			ConnBuilder:   connBuilder,
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
@@ -58,11 +57,10 @@ func (h setupHelper) nReplFactory(host string, port int, initNS string) func(cli
 	}
 }
 
-func (h setupHelper) pReplFactory(host string, port int, initNS string) func(client.OutputHandler) client.Client {
+func (h setupHelper) pReplFactory(connBuilder client.ConnBuilder, initNS string) func(client.OutputHandler) client.Client {
 	return func(outHandler client.OutputHandler) client.Client {
 		c, err := prepl.NewClient(&prepl.Opts{
-			Host:          host,
-			Port:          port,
+			ConnBuilder:   connBuilder,
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
@@ -74,22 +72,24 @@ func (h setupHelper) pReplFactory(host string, port int, initNS string) func(cli
 	}
 }
 
-func (h setupHelper) setupRepl(protocol string, host string, port int, initNS string, opts *repl.Opts) *repl.Repl {
+func (h setupHelper) setupRepl(protocol string, connBuilder client.ConnBuilder, initNS string, opts *repl.Opts) *repl.Repl {
 	opts.In = os.Stdin
 	opts.Out = os.Stdout
 	opts.Err = os.Stderr
 	opts.ErrHandler = h.errHandler
 	var factory func(client.OutputHandler) client.Client
 	if protocol == "nrepl" {
-		factory = h.nReplFactory(host, port, initNS)
+		factory = h.nReplFactory(connBuilder, initNS)
 	} else {
-		factory = h.pReplFactory(host, port, initNS)
+		factory = h.pReplFactory(connBuilder, initNS)
 	}
 	return repl.NewRepl(opts, factory)
 }
 
-func (h setupHelper) arbitrateServerInfo(args *cmdArgs) (protocol string, host string, port int) {
+func (h setupHelper) resolveConnection(args *cmdArgs) (protocol string, connBuilder client.ConnBuilder) {
 	server := *args.server
+	var host string
+	var port int
 	if server != "" {
 		match := urlRegex.FindStringSubmatch(server)
 		if match == nil {
@@ -126,6 +126,10 @@ func (h setupHelper) arbitrateServerInfo(args *cmdArgs) (protocol string, host s
 			return
 		}
 		port = p
+	}
+	connBuilder = &client.TCPConnBuilder{Host: host, Port: port}
+	if *args.retryTimeout > 0 {
+		connBuilder = client.NewRetryConnBuilder(connBuilder, *args.retryTimeout, *args.retryInterval)
 	}
 	return
 }

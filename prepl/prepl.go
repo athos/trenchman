@@ -34,23 +34,16 @@ type (
 	}
 
 	Opts struct {
-		Host          string
-		Port          int
 		InitNS        string
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
-		connBuilder   func(host string, port int) (net.Conn, error)
+		ConnBuilder   client.ConnBuilder
 	}
 )
 
 func NewClient(opts *Opts) (*Client, error) {
-	connBuilder := opts.connBuilder
-	if connBuilder == nil {
-		connBuilder = func(host string, port int) (net.Conn, error) {
-			return net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-		}
-	}
-	socket, err := connBuilder(opts.Host, opts.Port)
+	connBuilder := opts.ConnBuilder
+	socket, err := connBuilder.Connect()
 	if err != nil {
 		return nil, err
 	}

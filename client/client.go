@@ -9,7 +9,7 @@ type (
 	Request  interface{}
 	Response interface{}
 
-	Conn interface {
+	Transport interface {
 		io.Closer
 		Send(req Request) error
 		Recv() (Response, error)
@@ -60,9 +60,9 @@ func (e *RuntimeError) Error() string {
 	return e.err
 }
 
-func StartLoop(conn Conn, handler Handler, done chan struct{}) {
+func StartLoop(transport Transport, handler Handler, done chan struct{}) {
 	for {
-		resp, err := conn.Recv()
+		resp, err := transport.Recv()
 		if err != nil {
 			select {
 			case <-done:

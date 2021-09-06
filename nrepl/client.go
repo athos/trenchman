@@ -2,7 +2,6 @@ package nrepl
 
 import (
 	"fmt"
-	"net"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -28,13 +27,11 @@ type (
 	}
 
 	Opts struct {
-		Host          string
-		Port          int
 		InitNS        string
 		Oneshot       bool
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
-		connBuilder   func(host string, port int) (net.Conn, error)
+		ConnBuilder   client.ConnBuilder
 		idGenerator   func() string
 	}
 )
@@ -52,7 +49,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		pending:       map[string]chan client.EvalResult{},
 		idGenerator:   opts.idGenerator,
 	}
-	conn, err := Connect(&ConnOpts{opts.Host, opts.Port, opts.connBuilder})
+	conn, err := Connect(&ConnOpts{opts.ConnBuilder})
 	if err != nil {
 		return nil, err
 	}

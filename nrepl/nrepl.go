@@ -24,9 +24,7 @@ type (
 	}
 
 	ConnOpts struct {
-		Host        string
-		Port        int
-		connBuilder func(host string, port int) (net.Conn, error)
+		ConnBuilder client.ConnBuilder
 	}
 
 	SessionInfo struct {
@@ -36,13 +34,8 @@ type (
 )
 
 func Connect(opts *ConnOpts) (conn *Conn, err error) {
-	connBuilder := opts.connBuilder
-	if connBuilder == nil {
-		connBuilder = func(host string, port int) (net.Conn, error) {
-			return net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-		}
-	}
-	socket, err := connBuilder(opts.Host, opts.Port)
+	connBuilder := opts.ConnBuilder
+	socket, err := connBuilder.Connect()
 	if err != nil {
 		return
 	}
