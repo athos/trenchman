@@ -173,7 +173,7 @@ func (r *Repl) Start() {
 }
 
 func (r *Repl) StartWatchingInterruption() {
-	interrupt := make(chan os.Signal)
+	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	go func() {
 		for {
