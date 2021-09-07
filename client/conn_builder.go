@@ -15,8 +15,16 @@ type TCPConnBuilder struct {
 	Port int
 }
 
-func (conn *TCPConnBuilder) Connect() (net.Conn, error) {
-	return net.Dial("tcp", fmt.Sprintf("%s:%d", conn.Host, conn.Port))
+type UnixConnBuilder struct {
+	Path string
+}
+
+func (builder *TCPConnBuilder) Connect() (net.Conn, error) {
+	return net.Dial("tcp", fmt.Sprintf("%s:%d", builder.Host, builder.Port))
+}
+
+func (builder *UnixConnBuilder) Connect() (net.Conn, error) {
+	return net.Dial("unix", builder.Path)
 }
 
 type ConnBuilderFunc func() (net.Conn, error)
