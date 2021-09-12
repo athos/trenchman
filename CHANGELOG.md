@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [v0.3.0] - 2021-09-12
 ### Added
 - New options `--retry-timeout` / `--retry-interval` to control connection retries [#7](https://github.com/athos/trenchman/pull/7)
 
@@ -23,7 +25,8 @@ All notable changes to this project will be documented in this file. This change
 ## [v0.1.0] - 2021-08-14
 - First release
 
-[Unreleased]: https://github.com/athos/trenchman/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/athos/trenchman/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/athos/trenchman/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/athos/trenchman/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/athos/trenchman/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/athos/trenchman/releases/tag/v0.1.0
