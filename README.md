@@ -67,8 +67,8 @@ Flags:
   -p, --port=PORT               Connect to the specified port.
       --port-file=FILE          Specify port file that specifies port to connect to. Defaults to .nrepl-port.
   -P, --protocol=nrepl          Use the specified protocol. Possible values: n[repl], p[repl]. Defaults to nrepl.
-  -s, --server=[(nrepl|prepl)://]host[:port]
-                                Connect to the specified URL (e.g. prepl://127.0.0.1:5555).
+  -s, --server=[(nrepl|prepl)://]host[:port]|nrepl+unix:path
+                                Connect to the specified URL (e.g. prepl://127.0.0.1:5555, nrepl+unix:/foo/bar.socket).
       --retry-timeout=DURATION  Timeout after which retries are aborted. By default, Trenchman never retries connection.
       --retry-interval=1s       Interval between retries when connecting to the server.
   -i, --init=FILE               Load a file before execution.
@@ -89,6 +89,14 @@ One way to connect to a running server using Trenchman is to specify the server 
 
 ```sh
 $ trench -s nrepl://localhost:12345
+```
+
+Trenchman 0.3.0+ can also establish an nREPL connection via UNIX domain socket.
+To do so, specify the `--server` option with the `nrepl+unix:` scheme
+followed by the address path of the socket:
+
+```sh
+$ trench -s nrepl+unix:/foo/bar.socket
 ```
 
 In addition to nREPL, Trenchman supports the prepl protocol as well.
