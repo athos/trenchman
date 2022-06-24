@@ -91,7 +91,7 @@ One way to connect to a running server using Trenchman is to specify the server 
 trench -s nrepl://localhost:12345
 ```
 
-Trenchman 0.3.0+ can also establish an nREPL connection via UNIX domain socket.
+Trenchman 0.4.0+ can also establish an nREPL connection via UNIX domain socket.
 To do so, specify the `--server` option with the `nrepl+unix:` scheme
 followed by the address path of the socket:
 
