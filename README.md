@@ -35,14 +35,14 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 
 To install Trenchman via [Homebrew](https://brew.sh/), run the following command:
 
-```sh
-$ brew install athos/tap/trenchman
+```console
+brew install athos/tap/trenchman
 ```
 
 To upgrade:
 
-```sh
-$ brew upgrade trenchman
+```console
+brew upgrade trenchman
 ```
 
 ### Manual Install
@@ -51,8 +51,8 @@ Pre-built binaries are available for linux, macOS and Windows on the [releases](
 
 If you have the Go tool chain installed, you can build and install Trenchman by the following command:
 
-```sh
-$ go install github.com/athos/trenchman/cmd/trench@latest
+```console
+go install github.com/athos/trenchman/cmd/trench@latest
 ```
 
 Trenchman does not have `readline` support at this time. If you want to use features like line editing or command history, we recommend using [`rlwrap`](https://github.com/hanslub42/rlwrap) together with Trenchman.
@@ -87,23 +87,23 @@ Args:
 
 One way to connect to a running server using Trenchman is to specify the server URL with the `-s` (`--server`) option. For example, the following command lets you connect to an nREPL server listening on `localhost:12345`:
 
-```sh
-$ trench -s nrepl://localhost:12345
+```console
+trench -s nrepl://localhost:12345
 ```
 
 Trenchman 0.3.0+ can also establish an nREPL connection via UNIX domain socket.
 To do so, specify the `--server` option with the `nrepl+unix:` scheme
 followed by the address path of the socket:
 
-```sh
-$ trench -s nrepl+unix:/foo/bar.socket
+```console
+trench -s nrepl+unix:/foo/bar.socket
 ```
 
 In addition to nREPL, Trenchman supports the prepl protocol as well.
 To connect to a server via prepl, use the `prepl://` scheme instead of `nrepl://`:
 
-```sh
-$ trench -s prepl://localhost:5555
+```console
+trench -s prepl://localhost:5555
 ```
 
 Also, the connecting port and protocol can be specified with dedicated options:
@@ -118,8 +118,8 @@ If you omit the protocol or server host, Trenchman assumes that the following de
 
 So, in order to connect to `nrepl://127.0.0.1:12345`, you only have to do:
 
-```sh
-$ trench -p 12345
+```console
+trench -p 12345
 ```
 
 rather than `trench -s nrepl://127.0.0.1:12345`.
@@ -135,7 +135,7 @@ Trenchman tries to read the port number from a port file if the connecting port 
 
 So, the following example connects to `nrepl://127.0.0.1:12345`:
 
-```sh
+```console
 $ cat .nrepl-port
 12345
 $ trench
@@ -143,7 +143,7 @@ $ trench
 
 If you'd rather use another file as a port file, specify it with the `--port-file` option:
 
-```sh
+```console
 $ cat my-port-file
 3000
 $ trench --port-file my-port-file
@@ -158,8 +158,8 @@ The `--retry-timeout` and `--retry-interval` options control connection retries.
 
 For example, the following command will retry the connection every 5 seconds for up to 30 seconds:
 
-```sh
-$ trench --retry-timeout 30s --retry-interval 5s
+```console
+trench --retry-timeout 30s --retry-interval 5s
 ```
 
 If the connection fails after retrying the connection until the timeout, Trenchman will print the error and exit.
@@ -170,7 +170,7 @@ If `--retry-timeout` is not specified, Trenchman will not retry the connection.
 
 By default, Trenchman starts a new REPL session after the connection is established:
 
-```sh
+```console
 $ trench
 user=> (println "Hello, World!")
 Hello, World!
@@ -187,7 +187,7 @@ evaluation modes (`-e`/`-f`/`-m`).
 
 If the `-e` option is specified with an expression, Trenchman evaluates that expression:
 
-```sh
+```console
 $ trench -e '(println "Hello, World!")'
 Hello, World!
 $
@@ -195,7 +195,7 @@ $
 
 Trenchman will print the evaluation result if the given expression evaluates to a non-`nil` value:
 
-```sh
+```console
 $ trench -e '(map inc [1 2 3])'
 (2 3 4)
 $
@@ -205,7 +205,7 @@ $
 
 With the `-f` option, you can load (evaluate) the specified file:
 
-```sh
+```console
 $ cat hello.clj
 (println "Hello, World!")
 $ trench -f hello.clj
@@ -218,7 +218,7 @@ The client will send the entire content of the file to the server once the conne
 
 If `-` is specified as the input file, the input code will be read from stdin:
 
-```sh
+```console
 $ echo '(println "Hello, World!")' | trench -f -
 Hello, World!
 $
@@ -228,7 +228,7 @@ $
 
 With the `-m` option, you can call the `-main` function for the specified namespace:
 
-```sh
+```console
 $ cat src/hello/core.clj
 (ns hello.core)
 
