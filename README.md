@@ -77,6 +77,7 @@ Flags:
   -m, --main=NAMESPACE          Call the -main function for a namespace.
       --init-ns=NAMESPACE       Initialize REPL with the specified namespace. Defaults to "user".
   -C, --color=auto              When to use colors. Possible values: always, auto, none. Defaults to auto.
+      --debug                   Print debug information
       --version                 Show application version.
 
 Args:
