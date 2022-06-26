@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	"github.com/athos/trenchman/bencode"
 	"github.com/athos/trenchman/client"
@@ -21,10 +22,12 @@ type (
 		socket  net.Conn
 		encoder *bencode.Encoder
 		decoder *bencode.Decoder
+		debug   bool
 	}
 
 	ConnOpts struct {
 		ConnBuilder client.ConnBuilder
+		Debug       bool
 	}
 
 	SessionInfo struct {
@@ -43,11 +46,16 @@ func Connect(opts *ConnOpts) (conn *Conn, err error) {
 		socket:  socket,
 		encoder: bencode.NewEncoder(socket),
 		decoder: bencode.NewDecoder(socket),
+		debug:   opts.Debug,
 	}, nil
 }
 
 func (conn *Conn) Send(req client.Request) error {
-	return conn.encoder.Encode(map[string]bencode.Datum(req.(Request)))
+	msg := map[string]bencode.Datum(req.(Request))
+	if conn.debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG:SEND] %q\n", msg)
+	}
+	return conn.encoder.Encode(msg)
 }
 
 func (conn *Conn) Recv() (client.Response, error) {
@@ -57,6 +65,9 @@ func (conn *Conn) Recv() (client.Response, error) {
 			err = client.ErrDisconnected
 		}
 		return nil, err
+	}
+	if conn.debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG:RECV] %q\n", datum)
 	}
 	dict, ok := datum.(map[string]bencode.Datum)
 	if !ok {

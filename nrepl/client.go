@@ -32,6 +32,7 @@ type (
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
 		ConnBuilder   client.ConnBuilder
+		Debug         bool
 		idGenerator   func() string
 	}
 )
@@ -49,7 +50,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		pending:       map[string]chan client.EvalResult{},
 		idGenerator:   opts.idGenerator,
 	}
-	conn, err := Connect(&ConnOpts{opts.ConnBuilder})
+	conn, err := Connect(&ConnOpts{opts.ConnBuilder, opts.Debug})
 	if err != nil {
 		return nil, err
 	}
