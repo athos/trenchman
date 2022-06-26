@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/athos/trenchman/client"
@@ -31,6 +33,7 @@ type (
 		ns            string
 		returnCh      chan client.EvalResult
 		done          chan struct{}
+		debug         bool
 	}
 
 	Opts struct {
@@ -38,8 +41,14 @@ type (
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
 		ConnBuilder   client.ConnBuilder
+		Debug         bool
 	}
 )
+
+func (resp *Response) String() string {
+	bs, _ := edn.Marshal(resp)
+	return string(bs)
+}
 
 func NewClient(opts *Opts) (*Client, error) {
 	connBuilder := opts.ConnBuilder
@@ -59,6 +68,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		errHandler:    opts.ErrorHandler,
 		ns:            initNS,
 		done:          make(chan struct{}),
+		debug:         opts.Debug,
 	}
 	if err := c.Send("(set! *print-namespace-maps* false)\n"); err != nil {
 		return nil, err
@@ -88,7 +98,11 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Send(code client.Request) error {
-	if _, err := c.writer.WriteString(code.(string)); err != nil {
+	msg := code.(string)
+	if c.debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG:SEND] %q\n", strings.TrimSpace(msg))
+	}
+	if _, err := c.writer.WriteString(msg); err != nil {
 		return err
 	}
 	return c.writer.Flush()
@@ -102,12 +116,14 @@ func (c *Client) Recv() (client.Response, error) {
 		}
 		return nil, err
 	}
+	if c.debug {
+		fmt.Fprintf(os.Stderr, "[DEBUG:RECV] %s\n", resp.String())
+	}
 	return client.Response(&resp), nil
 }
 
 func (c *Client) HandleResp(response client.Response) {
 	resp := response.(*Response)
-	// fmt.Printf("resp: %v\n", resp)
 	switch resp.Tag.String() {
 	case ":ret":
 		c.handleResult(resp)
