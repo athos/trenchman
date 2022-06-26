@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 
 	"github.com/athos/trenchman/bencode"
 	"github.com/athos/trenchman/client"
@@ -18,16 +17,23 @@ type (
 	Handler    func(Response)
 	ErrHandler func(error)
 
+	DebugHandler interface {
+		HandleDebugMessage(string)
+	}
+	DebugHandlerFunc func(string)
+
 	Conn struct {
-		socket  net.Conn
-		encoder *bencode.Encoder
-		decoder *bencode.Decoder
-		debug   bool
+		socket       net.Conn
+		encoder      *bencode.Encoder
+		decoder      *bencode.Decoder
+		debug        bool
+		debugHandler DebugHandler
 	}
 
 	ConnOpts struct {
 		ConnBuilder client.ConnBuilder
 		Debug       bool
+		DebugHandler
 	}
 
 	SessionInfo struct {
@@ -36,24 +42,33 @@ type (
 	}
 )
 
+func (fn DebugHandlerFunc) HandleDebugMessage(s string) {
+	fn(s)
+}
+
 func Connect(opts *ConnOpts) (conn *Conn, err error) {
 	connBuilder := opts.ConnBuilder
 	socket, err := connBuilder.Connect()
 	if err != nil {
 		return
 	}
+	debugHandler := opts.DebugHandler
+	if debugHandler == nil {
+		debugHandler = DebugHandlerFunc(func(_ string) {})
+	}
 	return &Conn{
-		socket:  socket,
-		encoder: bencode.NewEncoder(socket),
-		decoder: bencode.NewDecoder(socket),
-		debug:   opts.Debug,
+		socket:       socket,
+		encoder:      bencode.NewEncoder(socket),
+		decoder:      bencode.NewDecoder(socket),
+		debug:        opts.Debug,
+		debugHandler: debugHandler,
 	}, nil
 }
 
 func (conn *Conn) Send(req client.Request) error {
 	msg := map[string]bencode.Datum(req.(Request))
 	if conn.debug {
-		fmt.Fprintf(os.Stderr, "[DEBUG:SEND] %q\n", msg)
+		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:SEND] %q\n", msg))
 	}
 	return conn.encoder.Encode(msg)
 }
@@ -67,7 +82,7 @@ func (conn *Conn) Recv() (client.Response, error) {
 		return nil, err
 	}
 	if conn.debug {
-		fmt.Fprintf(os.Stderr, "[DEBUG:RECV] %q\n", datum)
+		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:RECV] %q\n", datum))
 	}
 	dict, ok := datum.(map[string]bencode.Datum)
 	if !ok {

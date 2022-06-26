@@ -44,6 +44,8 @@ func (m *MockServer) Err(s string) {
 	m.errs = append(m.errs, s)
 }
 
+func (m *MockServer) Debug(s string) {}
+
 func (m *MockServer) HandleErr(err error) {
 	m.handledErr = err
 }

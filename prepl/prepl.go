@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strings"
 	"sync"
 
@@ -100,7 +99,7 @@ func (c *Client) Close() error {
 func (c *Client) Send(code client.Request) error {
 	msg := code.(string)
 	if c.debug {
-		fmt.Fprintf(os.Stderr, "[DEBUG:SEND] %q\n", strings.TrimSpace(msg))
+		c.outputHandler.Debug(fmt.Sprintf("[DEBUG:SEND] %q\n", strings.TrimSpace(msg)))
 	}
 	if _, err := c.writer.WriteString(msg); err != nil {
 		return err
@@ -117,7 +116,7 @@ func (c *Client) Recv() (client.Response, error) {
 		return nil, err
 	}
 	if c.debug {
-		fmt.Fprintf(os.Stderr, "[DEBUG:RECV] %s\n", resp.String())
+		c.outputHandler.Debug(fmt.Sprintf("[DEBUG:RECV] %s\n", resp.String()))
 	}
 	return client.Response(&resp), nil
 }
