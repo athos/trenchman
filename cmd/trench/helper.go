@@ -18,6 +18,7 @@ var unixUrlRegex = regexp.MustCompile(`^nrepl\+unix:(.+)$`)
 
 type setupHelper struct {
 	errHandler client.ErrorHandler
+	debug      bool
 }
 
 func readPortFromFile(protocol, portFile string) (int, bool, error) {
@@ -50,6 +51,7 @@ func (h setupHelper) nReplFactory(connBuilder client.ConnBuilder, initNS string)
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
+			Debug:         h.debug,
 		})
 		if err != nil {
 			h.errHandler.HandleErr(err)
@@ -65,6 +67,7 @@ func (h setupHelper) pReplFactory(connBuilder client.ConnBuilder, initNS string)
 			InitNS:        initNS,
 			OutputHandler: outHandler,
 			ErrorHandler:  h.errHandler,
+			Debug:         h.debug,
 		})
 		if err != nil {
 			h.errHandler.HandleErr(err)
