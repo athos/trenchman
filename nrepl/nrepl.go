@@ -17,14 +17,23 @@ type (
 	Handler    func(Response)
 	ErrHandler func(error)
 
+	DebugHandler interface {
+		HandleDebugMessage(string)
+	}
+	DebugHandlerFunc func(string)
+
 	Conn struct {
-		socket  net.Conn
-		encoder *bencode.Encoder
-		decoder *bencode.Decoder
+		socket       net.Conn
+		encoder      *bencode.Encoder
+		decoder      *bencode.Decoder
+		debug        bool
+		debugHandler DebugHandler
 	}
 
 	ConnOpts struct {
 		ConnBuilder client.ConnBuilder
+		Debug       bool
+		DebugHandler
 	}
 
 	SessionInfo struct {
@@ -33,20 +42,33 @@ type (
 	}
 )
 
+func (fn DebugHandlerFunc) HandleDebugMessage(s string) {
+	fn(s)
+}
+
 func Connect(opts *ConnOpts) (conn *Conn, err error) {
 	connBuilder := opts.ConnBuilder
 	socket, err := connBuilder.Connect()
 	if err != nil {
 		return
 	}
+	debugHandler := opts.DebugHandler
+	if debugHandler == nil {
+		debugHandler = DebugHandlerFunc(func(_ string) {})
+	}
 	return &Conn{
-		socket:  socket,
-		encoder: bencode.NewEncoder(socket),
-		decoder: bencode.NewDecoder(socket),
+		socket:       socket,
+		encoder:      bencode.NewEncoder(socket),
+		decoder:      bencode.NewDecoder(socket),
+		debug:        opts.Debug,
+		debugHandler: debugHandler,
 	}, nil
 }
 
 func (conn *Conn) Send(req client.Request) error {
+	if conn.debug {
+		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:SEND] %q\n", req))
+	}
 	return conn.encoder.Encode(map[string]bencode.Datum(req.(Request)))
 }
 
@@ -57,6 +79,9 @@ func (conn *Conn) Recv() (client.Response, error) {
 			err = client.ErrDisconnected
 		}
 		return nil, err
+	}
+	if conn.debug {
+		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:RECV] %q\n", datum))
 	}
 	dict, ok := datum.(map[string]bencode.Datum)
 	if !ok {

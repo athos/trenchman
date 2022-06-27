@@ -47,6 +47,7 @@ type (
 	OutputHandler interface {
 		Out(s string)
 		Err(s string)
+		Debug(s string)
 	}
 )
 

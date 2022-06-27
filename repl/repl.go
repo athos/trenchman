@@ -69,6 +69,10 @@ func (r *Repl) Err(s string) {
 	r.printer.With(color.FgRed).Fprint(r.err, s)
 }
 
+func (r *Repl) Debug(s string) {
+	r.printer.With(color.FgHiBlue).Fprint(r.err, s)
+}
+
 func (r *Repl) handleResults(ch <-chan client.EvalResult, hidesResult bool) {
 	for {
 		select {

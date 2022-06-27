@@ -34,6 +34,7 @@ type cmdArgs struct {
 	mainNS        *string
 	initNS        *string
 	colorOption   *string
+	debug         *bool
 	args          *[]string
 }
 
@@ -66,6 +67,7 @@ var args = cmdArgs{
 	mainNS:        kingpin.Flag("main", "Call the -main function for a namespace.").Short('m').PlaceHolder("NAMESPACE").String(),
 	initNS:        kingpin.Flag("init-ns", "Initialize REPL with the specified namespace. Defaults to \"user\".").PlaceHolder("NAMESPACE").String(),
 	colorOption:   kingpin.Flag("color", "When to use colors. Possible values: always, auto, none. Defaults to auto.").Default(COLOR_AUTO).Short('C').Enum(COLOR_NONE, COLOR_AUTO, COLOR_ALWAYS),
+	debug:         kingpin.Flag("debug", "Print debug information.").Bool(),
 	args:          kingpin.Arg("args", "Arguments to pass to -main. These will be ignored unless -m is specified.").Strings(),
 }
 
@@ -99,7 +101,7 @@ func main() {
 
 	printer := repl.NewPrinter(colorized(*args.colorOption))
 	errHandler := errorHandler{printer}
-	helper := setupHelper{errHandler}
+	helper := setupHelper{errHandler, *args.debug}
 	protocol, connBuilder := helper.resolveConnection(&args)
 	initFile := strings.TrimSpace(*args.init)
 	filename := strings.TrimSpace(*args.file)
