@@ -66,11 +66,10 @@ func Connect(opts *ConnOpts) (conn *Conn, err error) {
 }
 
 func (conn *Conn) Send(req client.Request) error {
-	msg := map[string]bencode.Datum(req.(Request))
 	if conn.debug {
-		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:SEND] %q\n", msg))
+		conn.debugHandler.HandleDebugMessage(fmt.Sprintf("[DEBUG:SEND] %q\n", req))
 	}
-	return conn.encoder.Encode(msg)
+	return conn.encoder.Encode(map[string]bencode.Datum(req.(Request)))
 }
 
 func (conn *Conn) Recv() (client.Response, error) {
