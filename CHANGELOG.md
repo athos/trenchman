@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 ## [Unreleased]
 ### Added
 - Support for nrepl+unix connections [#8](https://github.com/athos/trenchman/pull/8)
+- `--debug` option for printing debug info [#10](https://github.com/athos/trenchman/pull/10)
+
+### Changed
+- The `OutputHandler` interface now requires one more method (`Debug`) to be implemented
 
 ## [v0.3.0] - 2021-09-12
 ### Added
