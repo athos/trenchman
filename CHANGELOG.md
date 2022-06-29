@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 - The `OutputHandler` interface now requires one more method (`Debug`) to be implemented
+- Bump up deps [#11](https://github.com/athos/trenchman/pull/11)
 
 ## [v0.3.0] - 2021-09-12
 ### Added
