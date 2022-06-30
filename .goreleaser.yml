@@ -33,7 +33,7 @@ brews:
       email: goreleaser@carlosbecker.com
     folder: Formula
     homepage: "https://github.com/athos/trenchman"
-    description: "A standalone nREPL/prepl client written in Go, heavily inspired by Grenchman"
+    description: "A standalone nREPL/prepl client written in Go and heavily inspired by Grenchman"
     license: "MIT"
     test: |
       system "#{bin}/trench --version"
