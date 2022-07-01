@@ -17,17 +17,22 @@ Unlike ordinary Clojure REPLs, it starts up instantly as it just connects to a r
 
 ## Table of Contents
 
-- [Installation](#installation)
-  - [Homebrew (macOS and Linux)](#homebrew-macos-and-linux)
-  - [Manual Install](#manual-install)
-- [Usage](#usage)
-  - [Connecting to a server](#connecting-to-a-server)
-    - [Port file](#port-file)
-    - [Retry on connection](#retry-on-connection)
-  - [Evaluation](#evaluation)
-    - [Evaluating an expression (`-e`)](#evaluating-an-expression--e)
-    - [Evaluating a file (`-f`)](#evaluating-a-file--f)
-    - [Calling `-main` for a namespace (`-m`)](#calling--main-for-a-namespace--m)
+- [Trenchman](#trenchman)
+  - [Features](#features)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+    - [Homebrew (macOS and Linux)](#homebrew-macos-and-linux)
+    - [Scoop installer (Windows, Intel and AMD)](#scoop-installer-windows-intel-and-amd)
+    - [Manual Install](#manual-install)
+  - [Usage](#usage)
+    - [Connecting to a server](#connecting-to-a-server)
+      - [Port file](#port-file)
+      - [Retry on connection](#retry-on-connection)
+    - [Evaluation](#evaluation)
+      - [Evaluating an expression (`-e`)](#evaluating-an-expression--e)
+      - [Evaluating a file (`-f`)](#evaluating-a-file--f)
+      - [Calling `-main` for a namespace (`-m`)](#calling--main-for-a-namespace--m)
+  - [License](#license)
 
 ## Installation
 
@@ -44,6 +49,23 @@ To upgrade:
 ```console
 brew upgrade trenchman
 ```
+
+### Scoop installer (Windows, Intel and AMD)
+
+To install Trenchman via [Scoop](https://scoop.sh), run following commands:
+
+```console
+scoop bucket add scoop-clojure https://github.com/littleli/scoop-clojure
+scoop install trenchman
+```
+
+To upgrade use:
+
+```console
+scoop update *
+```
+
+Note: To install on ARM architecture you have to use manual install.
 
 ### Manual Install
 
