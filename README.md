@@ -62,7 +62,7 @@ scoop install trenchman
 To upgrade use:
 
 ```console
-scoop update *
+scoop update trenchman
 ```
 
 Note: To install on ARM architecture you have to use manual install.
