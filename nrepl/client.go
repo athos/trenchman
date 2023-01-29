@@ -22,6 +22,7 @@ type (
 		lock           sync.RWMutex
 		ns             string
 		pending        map[string]chan client.EvalResult
+		oneshot        bool
 		inputRequested bool
 		inputBuffer    *strings.Builder
 	}
@@ -48,6 +49,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		ns:            initNS,
 		done:          make(chan struct{}),
 		pending:       map[string]chan client.EvalResult{},
+		oneshot:       opts.Oneshot,
 		idGenerator:   opts.idGenerator,
 	}
 	conn, err := Connect(&ConnOpts{opts.ConnBuilder, opts.Debug, c})
@@ -126,11 +128,16 @@ func (c *Client) HandleResp(response client.Response) {
 		c.lock.Unlock()
 		ch <- resp["value"].(string)
 	case has(resp, "ex"):
+		if c.oneshot {
+			c.HandleErr(nil)
+			return
+		}
+		msg := resp["ex"].(string)
 		id := resp["id"].(string)
 		c.lock.RLock()
 		ch := c.pending[id]
 		c.lock.RUnlock()
-		ch <- client.NewRuntimeError(resp["ex"].(string))
+		ch <- client.NewRuntimeError(msg)
 	case has(resp, "out"):
 		c.outputHandler.Out(resp["out"].(string))
 	case has(resp, "err"):

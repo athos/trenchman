@@ -43,14 +43,16 @@ type errorHandler struct {
 }
 
 func (h errorHandler) HandleErr(err error) {
-	var errmsg string
-	switch err {
-	case client.ErrDisconnected:
-		errmsg = "disconnected from server"
-	default:
-		errmsg = err.Error()
+	if err != nil {
+		var errmsg string
+		switch err {
+		case client.ErrDisconnected:
+			errmsg = "disconnected from server"
+		default:
+			errmsg = err.Error()
+		}
+		h.printer.With(color.FgRed).Fprintln(os.Stderr, errmsg)
 	}
-	h.printer.With(color.FgRed).Fprintln(os.Stderr, errmsg)
 	os.Exit(1)
 }
 
@@ -108,11 +110,12 @@ func main() {
 	initNS := strings.TrimSpace(*args.initNS)
 	mainNS := strings.TrimSpace(*args.mainNS)
 	code := strings.TrimSpace(*args.eval)
+	oneshot := filename != "" || mainNS != "" || code != ""
 	opts := &repl.Opts{
 		Printer:  printer,
-		HidesNil: filename != "" || mainNS != "" || code != "",
+		HidesNil: oneshot,
 	}
-	repl := helper.setupRepl(protocol, connBuilder, initNS, opts)
+	repl := helper.setupRepl(protocol, connBuilder, initNS, oneshot, opts)
 	defer repl.Close()
 
 	if initFile != "" {

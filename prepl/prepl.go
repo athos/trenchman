@@ -2,6 +2,7 @@ package prepl
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -32,6 +33,7 @@ type (
 		ns            string
 		returnCh      chan client.EvalResult
 		done          chan struct{}
+		oneshot       bool
 		debug         bool
 	}
 
@@ -40,6 +42,7 @@ type (
 		OutputHandler client.OutputHandler
 		ErrorHandler  client.ErrorHandler
 		ConnBuilder   client.ConnBuilder
+		Oneshot       bool
 		Debug         bool
 	}
 )
@@ -67,6 +70,7 @@ func NewClient(opts *Opts) (*Client, error) {
 		errHandler:    opts.ErrorHandler,
 		ns:            initNS,
 		done:          make(chan struct{}),
+		oneshot:       opts.Oneshot,
 		debug:         opts.Debug,
 	}
 	if err := c.Send("(set! *print-namespace-maps* false)\n"); err != nil {
@@ -147,8 +151,12 @@ func (c *Client) handleResult(resp *Response) {
 		if err != nil {
 			msg = err.Error()
 		}
-		c.outputHandler.Err(msg + "\n")
-		ch <- client.NewRuntimeError(msg)
+		if c.oneshot {
+			c.HandleErr(errors.New(msg))
+		} else {
+			c.outputHandler.Err(msg + "\n")
+			ch <- client.NewRuntimeError(msg)
+		}
 	} else {
 		ch <- resp.Val
 	}
